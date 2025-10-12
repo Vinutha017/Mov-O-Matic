@@ -1,0 +1,45 @@
+MOV O MATIC – Your AI-Powered Smart Travel Planner
+MOV O MATIC is an all-in-one, AI-driven travel planning web app that builds smart, customized itineraries for every kind of traveler. In just a few steps, MOV O MATIC crafts day-by-day schedules, suggests hotels and experiences, optimizes your routes, tracks your budget, and keeps you updated with live weather and traffic notifications—making travel planning effortless, interactive, and truly personal.
+
+🌍 How MOV O MATIC Works
+Effortless Trip Creation — Start with simple details or just type: “Plan a 5-day Jaipur trip for two, culture & food focus, under ₹25,000.”
+
+Tailored Recommendations — MOV O MATIC suggests hotels, attractions, and food spots, sorted by your style, budget, and goals—powered by AI.
+
+Smart Itinerary & Transport Planner — Your schedule is optimized for shortest routes, best timing, and convenient city travel—no taxi brands, only informed choices.
+
+Budget Tracking & Cost Control — Visual charts and live tracking help you spend wisely and never miss the travel fun.
+
+Real-Time Flexibility — Get instant notifications if the weather or traffic might disrupt your plans; the app adapts your itinerary for comfort and convenience.
+
+Save, Share, and Collaborate — Plan solo or with friends. Share your trip link for input from travel partners!
+
+PDF Export & Print-Ready — Download your perfect itinerary, maps, and notes for offline use.
+
+✨ Key Features
+Trip Wizard & Travel Style Sliders: Guide the AI to fit your preferred pace, budget, and focus.
+
+AI-Powered Hotel/POI Suggestions: Filter, compare, and view sentiment-analyzed reviews for smarter picks.
+
+Visual Drag-and-Drop Itinerary: Rearrange days and activities with instant updates.
+
+Transport Estimator: Neutrally recommends metro, bus, auto, or taxi—with live fare, time, and pros/cons.
+
+Live Weather & Traffic Updates: MOV O MATIC notifies you instantly and flexibly revises your plan if needed.
+
+Budget & Currency Tools: Set and manage spend, see conversion rates, and stay on track.
+
+Guest Mode & Account Dashboard: Use instantly or register to save, duplicate, and manage trips.
+
+PDF Export & Notes: Take your guide anywhere, add reminders for each day.
+
+Modern, Responsive Design: Use on mobile, desktop, or offline via PWA—always in English for clarity.
+
+💡 Who is This For?
+Solo travelers seeking unique experiences
+
+Families and groups wanting clarity and control
+
+Planners who value real-time flexibility and budgeting
+
+Anyone eager for the smartest, smoothest way to travel
