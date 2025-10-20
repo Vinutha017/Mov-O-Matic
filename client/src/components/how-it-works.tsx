@@ -1,4 +1,5 @@
 import { Sparkles, Brain, Settings, MessageSquare, MapPin, Calendar, DollarSign, Users, Share2, Clock, Star, ArrowRight } from "lucide-react";
+import { Link } from "wouter";
 
 interface ItineraryItem {
   day: string;
@@ -328,11 +329,13 @@ export default function HowItWorks() {
             <p className="text-gray-600 dark:text-gray-300 mb-6 text-lg">
               Join thousands of travelers who trust Move-O-Matic for their perfect trips
             </p>
-            <button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium px-10 py-4 rounded-xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 group text-lg">
-              <Sparkles className="w-6 h-6 mr-3 inline group-hover:rotate-12 transition-transform" />
-              Start Planning Your Dream Trip
-              <ArrowRight className="w-6 h-6 ml-3 inline group-hover:translate-x-1 transition-transform" />
-            </button>
+            <Link href="/signup">
+              <button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium px-10 py-4 rounded-xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 group text-lg">
+                <Sparkles className="w-6 h-6 mr-3 inline group-hover:rotate-12 transition-transform" />
+                Start Planning Your Dream Trip
+                <ArrowRight className="w-6 h-6 ml-3 inline group-hover:translate-x-1 transition-transform" />
+              </button>
+            </Link>
             <p className="text-gray-500 text-sm mt-4">
               ✨ Free to use • No signup required • Instant results
             </p>

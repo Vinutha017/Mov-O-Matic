@@ -27,7 +27,7 @@ export default function Header() {
                 Sign Up
               </Button>
             </Link>
-            <Link href="/dashboard">
+            <Link href="/profile">
               <Button 
                 variant="ghost" 
                 size="sm"

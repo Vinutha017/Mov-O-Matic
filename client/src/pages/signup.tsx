@@ -4,13 +4,22 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { Eye, EyeOff, Mail, Lock, User, MapPin, Camera, Sparkles, Plane, Heart } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
+import { Eye, EyeOff, Mail, Lock, User, MapPin, Camera, Sparkles, Plane, Heart, Phone } from "lucide-react";
 
 export default function Signup() {
   const [, setLocation] = useLocation();
+  
+  // Get email from URL params if user was redirected from login
+  const urlParams = new URLSearchParams(window.location.search);
+  const prefilledEmail = urlParams.get('email') || '';
+  
   const [formData, setFormData] = useState({
     fullName: "",
-    email: "",
+    email: prefilledEmail,
+    phoneNumber: "",
     password: "",
     confirmPassword: "",
     city: "",
@@ -20,6 +29,10 @@ export default function Signup() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [profilePicture, setProfilePicture] = useState<File | null>(null);
+  const [showEmailExistsDialog, setShowEmailExistsDialog] = useState(false);
+  const [existingEmail, setExistingEmail] = useState("");
+  const { signup, signInWithGoogle } = useAuth();
+  const { toast } = useToast();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -41,61 +54,139 @@ export default function Signup() {
     
     // Basic validation
     if (!formData.fullName.trim()) {
-      alert('Please enter your full name.');
+      toast({
+        title: "Validation Error",
+        description: "Please enter your full name.",
+        variant: "destructive",
+      });
       return;
     }
     
     if (!formData.email.trim()) {
-      alert('Please enter your email address.');
+      toast({
+        title: "Validation Error",
+        description: "Please enter your email address.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!formData.phoneNumber.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Please enter your phone number.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Basic phone number validation (allow international formats)
+    const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
+    if (!phoneRegex.test(formData.phoneNumber.replace(/[\s\-\(\)]/g, ''))) {
+      toast({
+        title: "Validation Error",
+        description: "Please enter a valid phone number.",
+        variant: "destructive",
+      });
       return;
     }
     
     if (!formData.password) {
-      alert('Please enter a password.');
+      toast({
+        title: "Validation Error",
+        description: "Please enter a password.",
+        variant: "destructive",
+      });
       return;
     }
     
     if (formData.password !== formData.confirmPassword) {
-      alert('Passwords do not match.');
+      toast({
+        title: "Validation Error",
+        description: "Passwords do not match.",
+        variant: "destructive",
+      });
       return;
     }
     
     if (formData.password.length < 6) {
-      alert('Password must be at least 6 characters long.');
+      toast({
+        title: "Validation Error",
+        description: "Password must be at least 6 characters long.",
+        variant: "destructive",
+      });
       return;
     }
     
     setIsLoading(true);
     
-    // Simulate account creation
-    setTimeout(() => {
+    // Add a timeout to prevent infinite loading
+    const timeoutId = setTimeout(() => {
       setIsLoading(false);
-      console.log("Account created:", formData);
-      
-      // Store basic user data
-      const userData = {
-        fullName: formData.fullName,
+      toast({
+        title: "Signup Timeout",
+        description: "The signup process is taking too long. Please try again.",
+        variant: "destructive",
+      });
+    }, 30000); // 30 seconds timeout
+    
+    try {
+      // Pass additional profile data to signup function
+      const additionalData = {
+        phoneNumber: formData.phoneNumber,
         firstName: formData.fullName.split(' ')[0],
         lastName: formData.fullName.split(' ').slice(1).join(' '),
-        email: formData.email,
         city: formData.city,
-        country: formData.country,
-        profilePicture: profilePicture ? URL.createObjectURL(profilePicture) : null,
-        signupDate: new Date().toISOString(),
-        isNewUser: true // Flag to identify new users
+        country: formData.country
       };
       
-      localStorage.setItem('userProfile', JSON.stringify(userData));
-      localStorage.setItem('userName', formData.fullName);
+      await signup(formData.email, formData.password, formData.fullName, additionalData);
+      clearTimeout(timeoutId);
       
-      // Redirect new users directly to trip wizard form
-      setLocation('/trip-wizard');
-    }, 1500);
+      toast({
+        title: "Account Created Successfully",
+        description: "Welcome to Mov-O-Matic! You can now explore all our features.",
+      });
+      
+      // Redirect new users to welcome page
+      setLocation('/welcome');
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      
+      // Handle email already exists error specially
+      if (error.name === 'EmailAlreadyInUse') {
+        setExistingEmail(formData.email);
+        setShowEmailExistsDialog(true);
+      } else {
+        toast({
+          title: "Signup Failed",
+          description: error.message || "An error occurred during signup",
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleSocialLogin = (provider: string) => {
-    console.log(`Login with ${provider}`);
-    // Handle social login
+  const handleGoogleSignUp = async () => {
+    try {
+      setIsLoading(true);
+      await signInWithGoogle();
+      toast({
+        title: "Account Created Successfully",
+        description: "Welcome to Mov-O-Matic! Let's plan your first trip.",
+      });
+      setLocation('/welcome');
+    } catch (error: any) {
+      toast({
+        title: "Google Sign-Up Failed",
+        description: error.message || "An error occurred during Google sign-up",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -132,6 +223,21 @@ export default function Signup() {
 
         {/* Signup Form */}
         <Card className="bg-white/80 backdrop-blur-sm border-white/50 shadow-xl rounded-3xl p-8">
+          {/* Show message if email was pre-filled from login redirect */}
+          {prefilledEmail && (
+            <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-center space-x-2 text-blue-700">
+                <Mail className="w-5 h-5" />
+                <p className="text-sm font-medium">
+                  No account found for <strong>{prefilledEmail}</strong>
+                </p>
+              </div>
+              <p className="text-xs text-blue-600 mt-1">
+                Let's create your account with this email address.
+              </p>
+            </div>
+          )}
+          
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Profile Picture Upload */}
             <div className="flex justify-center">
@@ -188,6 +294,24 @@ export default function Signup() {
                   type="email"
                   placeholder="Enter your email"
                   value={formData.email}
+                  onChange={handleChange}
+                  required
+                  className="pl-10 h-12 rounded-xl border-gray-200/50 bg-white/50 backdrop-blur-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400"
+                />
+              </div>
+            </div>
+
+            {/* Phone Number */}
+            <div className="space-y-2">
+              <Label htmlFor="phoneNumber" className="text-gray-700 font-medium">Phone Number *</Label>
+              <div className="relative">
+                <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <Input
+                  id="phoneNumber"
+                  name="phoneNumber"
+                  type="tel"
+                  placeholder="Enter your phone number"
+                  value={formData.phoneNumber}
                   onChange={handleChange}
                   required
                   className="pl-10 h-12 rounded-xl border-gray-200/50 bg-white/50 backdrop-blur-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400"
@@ -311,7 +435,8 @@ export default function Signup() {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => handleSocialLogin('google')}
+                onClick={handleGoogleSignUp}
+                disabled={isLoading}
                 className="h-11 border-gray-200/50 bg-white/50 backdrop-blur-sm hover:bg-white/80 transition-all duration-300"
               >
                 <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
@@ -326,7 +451,13 @@ export default function Signup() {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => handleSocialLogin('apple')}
+                onClick={() => {
+                  toast({
+                    title: "Coming Soon",
+                    description: "Apple Sign-In will be available soon!",
+                  });
+                }}
+                disabled={isLoading}
                 className="h-11 border-gray-200/50 bg-white/50 backdrop-blur-sm hover:bg-white/80 transition-all duration-300"
               >
                 <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
@@ -361,6 +492,44 @@ export default function Signup() {
           </p>
         </div>
       </div>
+
+      {/* Email Already Exists Dialog */}
+      <AlertDialog open={showEmailExistsDialog} onOpenChange={setShowEmailExistsDialog}>
+        <AlertDialogContent className="sm:max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center space-x-2">
+              <Mail className="w-5 h-5 text-blue-600" />
+              <span>Account Already Exists</span>
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <p>
+                An account with <strong>{existingEmail}</strong> already exists.
+              </p>
+              <p className="text-sm text-gray-600">
+                Would you like to sign in to your existing account instead?
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowEmailExistsDialog(false)}
+              className="w-full sm:w-auto"
+            >
+              Use Different Email
+            </Button>
+            <AlertDialogAction
+              onClick={() => {
+                setShowEmailExistsDialog(false);
+                setLocation('/login');
+              }}
+              className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700"
+            >
+              Sign In Instead
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

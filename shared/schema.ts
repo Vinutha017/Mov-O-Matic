@@ -185,11 +185,26 @@ export interface TripWithDetails extends Trip {
 export interface AITripRequest {
   description: string;
   destination?: string;
+  startLocation?: string;
+  startDate?: string;
+  endDate?: string;
   duration?: string;
   budget?: number;
   travelers?: number;
+  tripType?: string;
+  modeOfTravel?: string;
+  preferredDepartureTime?: string;
+  hotelType?: string;
+  roomType?: string;
+  foodPreferences?: string[];
+  activityTypes?: string[];
+  tripTheme?: string;
   interests?: string[];
+  transportPreferences?: string[];
   travelStyle?: string;
+  accommodationAmenities?: string[];
+  mobilityRequirements?: string;
+  specialRequirements?: string;
 }
 
 export interface AIRecommendation {

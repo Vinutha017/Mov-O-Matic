@@ -1,7 +1,14 @@
+import 'dotenv/config';
 import express, { type Request, Response, NextFunction } from "express";
 import { createServer } from "http";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+
+// Debug environment variables
+console.log('🔧 Environment Variables Debug:');
+console.log('NODE_ENV:', process.env.NODE_ENV);
+console.log('GEMINI_API_KEY exists:', !!process.env.GEMINI_API_KEY);
+console.log('GEMINI_API_KEY length:', process.env.GEMINI_API_KEY?.length || 0);
 
 const app = express();
 const server = createServer(app);
@@ -59,10 +66,7 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  server.listen({
-    port,
-    host: "127.0.0.1"
-  }, () => {
+  server.listen(port, () => {
     log(`Server running at http://localhost:${port}`);
   });
 })();

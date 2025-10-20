@@ -4,6 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
+import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 import { Route, Mail, Lock, Eye, EyeOff, ArrowRight, Sparkles } from "lucide-react";
 
 export default function Login() {
@@ -12,30 +15,110 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [showUserNotFoundDialog, setShowUserNotFoundDialog] = useState(false);
+  const [notFoundEmail, setNotFoundEmail] = useState("");
+  const { login, signInWithGoogle } = useAuth();
+  const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Basic validation
+    if (!email.trim()) {
+      toast({
+        title: "Email Required",
+        description: "Please enter your email address.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!password) {
+      toast({
+        title: "Password Required",
+        description: "Please enter your password.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Basic email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      toast({
+        title: "Invalid Email",
+        description: "Please enter a valid email address.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setIsLoading(true);
     
-    // Simulate login process
-    setTimeout(() => {
-      setIsLoading(false);
-      
-      // Store user login state and mark as returning user
-      const existingUserData = JSON.parse(localStorage.getItem('userProfile') || '{}');
-      const userData = {
-        ...existingUserData,
-        email: email,
-        isNewUser: false, // Mark as returning user
-        lastLogin: new Date().toISOString()
-      };
-      
-      localStorage.setItem('userProfile', JSON.stringify(userData));
-      localStorage.setItem('isLoggedIn', 'true');
-      
-      // Redirect existing users to welcome page with options
+    try {
+      await login(email, password);
+      toast({
+        title: "Login Successful",
+        description: "Welcome back to Mov-O-Matic!",
+      });
       setLocation('/welcome');
-    }, 2000);
+    } catch (error: any) {
+      // Handle invalid credential error - could be either user not found or wrong password
+      if (error.name === 'InvalidCredential') {
+        // Show a user-friendly dialog asking if they want to create an account
+        setNotFoundEmail(email);
+        setShowUserNotFoundDialog(true);
+      } else if (error.name === 'UserNotFound') {
+        setNotFoundEmail(email);
+        setShowUserNotFoundDialog(true);
+      } else if (error.name === 'WrongPassword') {
+        toast({
+          title: "Incorrect Password",
+          description: "The password you entered is incorrect. Please try again or reset your password.",
+          variant: "destructive",
+        });
+      } else if (error.name === 'InvalidEmail') {
+        toast({
+          title: "Invalid Email",
+          description: "Please enter a valid email address.",
+          variant: "destructive",
+        });
+      } else if (error.name === 'TooManyRequests') {
+        toast({
+          title: "Too Many Attempts",
+          description: "Too many failed login attempts. Please wait a moment and try again.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Login Failed",
+          description: error.message || "An error occurred during login. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    try {
+      setIsLoading(true);
+      await signInWithGoogle();
+      toast({
+        title: "Login Successful",
+        description: "Welcome to Mov-O-Matic!",
+      });
+      setLocation('/welcome');
+    } catch (error: any) {
+      toast({
+        title: "Google Sign-In Failed",
+        description: error.message || "An error occurred during Google sign-in",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -158,6 +241,8 @@ export default function Login() {
             <Button
               variant="outline"
               className="w-full h-12 bg-white/50 border-gray-200/50 hover:bg-white/80 rounded-xl"
+              onClick={handleGoogleSignIn}
+              disabled={isLoading}
             >
               <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -190,6 +275,60 @@ export default function Login() {
           </p>
         </div>
       </div>
+
+      {/* User Not Found Dialog */}
+      <AlertDialog open={showUserNotFoundDialog} onOpenChange={setShowUserNotFoundDialog}>
+        <AlertDialogContent className="sm:max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center space-x-2">
+              <Mail className="w-5 h-5 text-orange-600" />
+              <span>Login Issue</span>
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <p>
+                We couldn't sign you in with <strong>{notFoundEmail}</strong>.
+              </p>
+              <p className="text-sm text-gray-600">
+                This could be because the account doesn't exist or the password is incorrect. Would you like to create a new account?
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col space-y-2">
+            <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full">
+              <Button
+                variant="outline"
+                onClick={() => setShowUserNotFoundDialog(false)}
+                className="w-full sm:w-auto"
+              >
+                Try Again
+              </Button>
+              <AlertDialogAction
+                onClick={() => {
+                  setShowUserNotFoundDialog(false);
+                  // Pre-fill signup form with the email they tried to use
+                  setLocation(`/signup?email=${encodeURIComponent(notFoundEmail)}`);
+                }}
+                className="w-full sm:w-auto bg-orange-600 hover:bg-orange-700"
+              >
+                Create New Account
+              </AlertDialogAction>
+            </div>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setShowUserNotFoundDialog(false);
+                toast({
+                  title: "Password Reset",
+                  description: "Password reset functionality will be available soon. Please try creating a new account for now.",
+                });
+              }}
+              className="w-full text-blue-600 hover:text-blue-700"
+            >
+              Forgot Password?
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

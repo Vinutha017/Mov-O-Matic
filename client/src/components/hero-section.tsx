@@ -16,7 +16,7 @@ const HeroSection = () => {
         Create personalized movie watchlists, get recommendations, and track your watching progress.
       </p>
       <div className="flex flex-wrap gap-4 justify-center">
-        <Link href="/plan">
+        <Link href="/signup">
           <Button className="h-11 px-8" size="lg">
             <Sparkles className="mr-2 h-4 w-4" />
             Start Planning Free

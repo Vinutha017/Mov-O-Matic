@@ -6,10 +6,10 @@ MOV O MATIC is a comprehensive AI-driven travel planning web application that cr
 
 ## Features:
 
-### 🧠 **AI-Powered Trip Planning** trip 
+### 🧠 **AI-Powered Trip Planning** trip gjng
 - Natural language trip description input
 - Intelligent destination and hotel recommendations
-- Personalized itinerary generation using Google Gemini AI
+- Personalized itinerary generation using Google Gemini AI hj
 
 ### 🗓️ **Interactive Itinerary Builder**
 - Drag-and-drop interface for customizing daily schedules

@@ -4,6 +4,8 @@ import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Progress } from '../components/ui/progress';
+import { useAuth } from '../contexts/AuthContext';
+import { useTrips } from '../hooks/use-trips';
 import { 
   Compass, 
   DollarSign, 
@@ -33,20 +35,26 @@ import {
 } from 'lucide-react';
 
 export default function Dashboard() {
-  const [userName, setUserName] = useState('');
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showWelcomeMessage, setShowWelcomeMessage] = useState(false);
+  const { currentUser, userProfile, logout } = useAuth();
+  const { trips, loading: tripsLoading } = useTrips();
+
+  const userName = userProfile?.firstName || userProfile?.displayName?.split(' ')[0] || currentUser?.displayName?.split(' ')[0] || 'Traveler';
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error('Error logging out:', error);
+    }
+  };
 
   useEffect(() => {
     // Check if this is a new user welcome
     const urlParams = new URLSearchParams(window.location.search);
     const isWelcome = urlParams.get('welcome') === 'true';
     setShowWelcomeMessage(isWelcome);
-
-    // Get user profile from localStorage
-    const userProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
-    const storedName = userProfile.firstName || userProfile.fullName?.split(' ')[0] || localStorage.getItem('userName') || 'Traveler';
-    setUserName(storedName);
 
     // Update time every minute
     const timer = setInterval(() => {
@@ -242,8 +250,8 @@ export default function Dashboard() {
                 <Button variant="ghost" size="sm">
                   <Settings className="w-5 h-5" />
                 </Button>
-                <Button variant="ghost" size="sm">
-                  <User className="w-5 h-5" />
+                <Button variant="ghost" size="sm" onClick={handleLogout}>
+                  <LogOut className="w-5 h-5" />
                 </Button>
               </div>
             </div>

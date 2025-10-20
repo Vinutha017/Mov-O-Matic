@@ -20,7 +20,7 @@ export default function CTASection() {
           </p>
           
           <div className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-16">
-            <Link href="/trip-wizard">
+            <Link href="/signup">
               <Button 
                 size="lg" 
                 className="bg-gradient-to-r from-white to-gray-50 text-gray-900 hover:from-gray-50 hover:to-gray-100 border-2 border-white/50 font-semibold px-12 py-6 rounded-2xl text-lg shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 backdrop-blur-sm"
