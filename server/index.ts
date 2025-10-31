@@ -12,7 +12,7 @@ console.log('GEMINI_API_KEY length:', process.env.GEMINI_API_KEY?.length || 0);
 
 const app = express();
 const server = createServer(app);
-const port = parseInt(process.env.PORT || '5000', 10);
+const port = parseInt(process.env.PORT || '3001', 10);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -49,7 +49,14 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  await registerRoutes(app);
+  try {
+    console.log('🔧 Registering routes...');
+    await registerRoutes(app);
+    console.log('✅ Routes registered successfully');
+  } catch (error) {
+    console.error('❌ Failed to register routes:', error);
+    process.exit(1);
+  }
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
@@ -66,7 +73,12 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  server.listen(port, () => {
+  server.listen(port, '0.0.0.0', () => {
     log(`Server running at http://localhost:${port}`);
+    console.log('🌐 Server bound to 0.0.0.0:' + port);
+  });
+
+  server.on('error', (error) => {
+    console.error('❌ Server error:', error);
   });
 })();

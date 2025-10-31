@@ -1,11 +1,10 @@
 import type { Express } from "express";
-import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { aiTravelPlanner } from "./services/gemini.ts";
+import { aiTravelPlanner } from "./services/gemini";
 import { insertTripSchema, insertItineraryDaySchema, insertActivitySchema, insertExpenseSchema, type AITripRequest } from "@shared/schema";
 import { z } from "zod";
 
-export async function registerRoutes(app: Express): Promise<Server> {
+export async function registerRoutes(app: Express): Promise<void> {
   // Trip creation and AI planning
   app.post("/api/trips/generate", async (req, res) => {
     try {
@@ -265,6 +264,4 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  const httpServer = createServer(app);
-  return httpServer;
 }

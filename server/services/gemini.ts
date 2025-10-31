@@ -6,115 +6,165 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
 export class AITravelPlanner {
   async generateTripItinerary(request: AITripRequest): Promise<AIRecommendation> {
-    console.log("🌟 Using Google Gemini for trip generation");
+    console.log("🌟 Using Google Gemini 2.5 Flash for trip generation");
+    console.log("📝 Request:", JSON.stringify(request, null, 2));
     
     try {
       const model = genAI.getGenerativeModel({ model: "models/gemini-2.5-flash" });
       
-      const prompt = `Create a detailed travel itinerary in JSON format for ${request.destination}. 
-      Budget: ${request.budget}. Return only valid JSON.`;
+      const prompt = `You are an expert travel planner. Create a comprehensive travel itinerary for ${request.destination}.
 
+📋 TRIP REQUIREMENTS:
+• Destination: ${request.destination}
+• Budget: ₹${request.budget} total
+• Duration: ${request.duration || 3} days
+• Travelers: ${request.travelers || 2} people
+• Travel Style: ${request.travelStyle || 'leisure'}
+• Interests: ${(request.interests || ['sightseeing']).join(', ')}
+• Description: ${request.description || 'A memorable travel experience'}
+
+Return ONLY valid JSON in this exact format:
+{
+  "hotels": [
+    {
+      "id": "hotel-1",
+      "name": "Hotel Name",
+      "location": "Area in ${request.destination}",
+      "address": "Complete street address",
+      "rating": "4.2",
+      "pricePerNight": "2500",
+      "currency": "INR",
+      "amenities": ["WiFi", "Restaurant", "Pool"],
+      "description": "Hotel description with unique features",
+      "aiInsight": "Why this hotel is perfect for your trip"
+    }
+  ],
+  "attractions": [
+    {
+      "id": "attr-1",
+      "title": "Attraction Name",
+      "description": "What makes this attraction special",
+      "location": "Area in ${request.destination}",
+      "cost": "300",
+      "duration": 120,
+      "category": "attraction",
+      "notes": "Best time to visit and tips"
+    }
+  ],
+  "restaurants": [
+    {
+      "id": "rest-1",
+      "title": "Restaurant Name",
+      "description": "Cuisine type and specialties",
+      "location": "Area in ${request.destination}",
+      "cost": "800",
+      "duration": 90,
+      "category": "restaurant",
+      "notes": "Must-try dishes and timing"
+    }
+  ],
+  "itinerary": [
+    {
+      "day": 1,
+      "activities": [],
+      "estimatedCost": 1500
+    }
+  ],
+  "totalEstimatedCost": ${request.budget},
+  "tips": [
+    "Local tip 1",
+    "Local tip 2",
+    "Local tip 3"
+  ]
+}
+
+Important: Return ONLY the JSON, no other text.`;
+
+      console.log("🚀 Sending request to Gemini API...");
       const result = await model.generateContent(prompt);
       const response = await result.response;
-      const text = response.text();
-
-      // Parse JSON from AI response
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        try {
-          const aiResponse = JSON.parse(jsonMatch[0]);
-          console.log("✅ Successfully parsed AI response");
-          return aiResponse as AIRecommendation;
-        } catch (parseError) {
-          console.log("⚠️ JSON parse failed, using fallback");
-        }
+      
+      // Correct way to extract text from Gemini response
+      const candidates = response.candidates;
+      if (!candidates || candidates.length === 0) {
+        throw new Error("No candidates in Gemini response");
       }
       
-      // Enhanced fallback with actual data
-      return this.createSmartFallback(request);
+      const content = candidates[0].content;
+      if (!content || !content.parts || content.parts.length === 0) {
+        throw new Error("No content parts in Gemini response");
+      }
+      
+      const text = content.parts[0].text;
+      if (!text) {
+        throw new Error("No text content in Gemini response");
+      }
+      
+      console.log("📥 Raw Gemini Response:", text.substring(0, 500) + "...");
+
+      // Extract JSON from response
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error("No valid JSON found in Gemini response");
+      }
+
+      const aiResponse = JSON.parse(jsonMatch[0]);
+      console.log("✅ Successfully parsed AI itinerary:", Object.keys(aiResponse));
+      
+      // Ensure all required fields are present
+      const validatedResponse: AIRecommendation = {
+        hotels: aiResponse.hotels || [],
+        attractions: aiResponse.attractions || [],
+        restaurants: aiResponse.restaurants || [],
+        itinerary: aiResponse.itinerary || [{day: 1, activities: [], estimatedCost: request.budget}],
+        totalEstimatedCost: aiResponse.totalEstimatedCost || request.budget,
+        tips: aiResponse.tips || []
+      };
+      
+      // Add missing fields to activities
+      validatedResponse.attractions = validatedResponse.attractions.map(attr => ({
+        ...attr,
+        address: attr.address || null,
+        coordinates: attr.coordinates || null,
+        startTime: attr.startTime || null,
+        endTime: attr.endTime || null,
+        priority: attr.priority || 1,
+        bookingUrl: attr.bookingUrl || null,
+        sortOrder: attr.sortOrder || 0,
+        dayId: attr.dayId || ""
+      }));
+      
+      validatedResponse.restaurants = validatedResponse.restaurants.map(rest => ({
+        ...rest,
+        address: rest.address || null,
+        coordinates: rest.coordinates || null,
+        startTime: rest.startTime || null,
+        endTime: rest.endTime || null,
+        priority: rest.priority || 1,
+        bookingUrl: rest.bookingUrl || null,
+        sortOrder: rest.sortOrder || 0,
+        dayId: rest.dayId || ""
+      }));
+      
+      // Add missing fields to hotels
+      validatedResponse.hotels = validatedResponse.hotels.map(hotel => ({
+        ...hotel,
+        bookingUrl: hotel.bookingUrl || null,
+        coordinates: hotel.coordinates || null,
+        images: hotel.images || null
+      }));
+      
+      return validatedResponse;
+      
     } catch (error) {
       console.error("❌ Gemini AI Error:", error);
-      return this.createSmartFallback(request);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      console.error("Error details:", errorMessage);
+      throw new Error(`Failed to generate trip itinerary: ${errorMessage}`);
     }
   }
 
-  private createSmartFallback(request: AITripRequest): AIRecommendation {
-    const destination = request.destination || "Mumbai";
-    const budget = request.budget || 5000;
-    
-    return {
-      hotels: [
-        {
-          id: "fallback-hotel-1",
-          name: `The Grand ${destination} Hotel`,
-          location: `${destination} City Center`,
-          rating: "4.3",
-          pricePerNight: Math.round(budget * 0.8).toString(),
-          currency: "INR",
-          amenities: ["WiFi", "Restaurant", "Pool", "Spa"],
-          images: null,
-          description: `A luxury hotel in the heart of ${destination} offering world-class amenities`,
-          aiInsight: `Perfect for ${request.travelStyle || 'leisure'} travelers with excellent location and services`,
-          bookingUrl: null,
-          address: `123 Main Street, ${destination}`,
-          coordinates: null
-        }
-      ],
-      attractions: [
-        {
-          id: "attr-1",
-          title: `${destination} Heritage Walk`,
-          description: `Explore the rich cultural heritage of ${destination}`,
-          location: `${destination} Old City`,
-          address: null,
-          coordinates: null,
-          startTime: null,
-          endTime: null,
-          cost: "300",
-          duration: 180,
-          category: "attraction",
-          priority: 1,
-          bookingUrl: null,
-          notes: null,
-          sortOrder: 0,
-          dayId: ""
-        }
-      ],
-      restaurants: [
-        {
-          id: "rest-1", 
-          title: `Traditional ${destination} Kitchen`,
-          description: "Authentic local cuisine with traditional recipes",
-          location: `${destination} Food Street`,
-          address: null,
-          coordinates: null,
-          startTime: null,
-          endTime: null,
-          cost: "800",
-          duration: 90,
-          category: "restaurant",
-          priority: 1,
-          bookingUrl: null,
-          notes: null,
-          sortOrder: 0,
-          dayId: ""
-        }
-      ],
-      itinerary: [
-        {
-          day: 1,
-          activities: [],
-          estimatedCost: 1500
-        }
-      ],
-      totalEstimatedCost: budget,
-      tips: [
-        `Best time to visit ${destination} is during the cooler months`,
-        "Try local street food for authentic flavors",
-        "Book popular attractions in advance"
-      ]
-    };
-  }
+
 
   async getPersonalizedHotelRecommendations(preferences: {
     destination: string;
@@ -126,54 +176,7 @@ export class AITravelPlanner {
   }): Promise<Hotel[]> {
     console.log("🌟 Using Gemini for hotel recommendations");
     
-    // ALWAYS return data to ensure UI shows content
-    const fallbackHotels = [
-      {
-        id: "fallback-1",
-        name: `The Grand ${preferences.destination} Palace`,
-        location: `${preferences.destination} City Center`,
-        address: `123 Heritage Street, ${preferences.destination}`,
-        rating: "4.5",
-        pricePerNight: Math.round(preferences.budget * 0.85).toString(),
-        currency: "INR",
-        amenities: ["WiFi", "Restaurant", "Pool", "Spa", "Gym"],
-        description: `Luxury hotel in ${preferences.destination} with ${preferences.travelStyle} amenities and excellent service`,
-        aiInsight: `Recommended for ${preferences.travelStyle} travelers interested in ${preferences.interests.join(" & ")}. Prime location with all modern amenities.`,
-        bookingUrl: null,
-        coordinates: null,
-        images: null
-      },
-      {
-        id: "fallback-2",
-        name: `${preferences.destination} Business Inn`,
-        location: `${preferences.destination} Commercial District`,
-        address: `456 Business Avenue, ${preferences.destination}`,
-        rating: "4.2",
-        pricePerNight: Math.round(preferences.budget * 0.75).toString(),
-        currency: "INR",
-        amenities: ["WiFi", "Business Center", "Restaurant", "Conference Rooms"],
-        description: `Modern business hotel perfect for ${preferences.travelStyle} stays with excellent connectivity`,
-        aiInsight: `Great value option for ${preferences.travelers} travelers focusing on ${preferences.interests.join(" and ")} experiences.`,
-        bookingUrl: null,
-        coordinates: null,
-        images: null
-      },
-      {
-        id: "fallback-3",
-        name: `${preferences.destination} Heritage Hotel`,
-        location: `${preferences.destination} Old City`,
-        address: `789 Traditional Lane, ${preferences.destination}`,
-        rating: "4.3",
-        pricePerNight: Math.round(preferences.budget * 0.70).toString(),
-        currency: "INR",
-        amenities: ["WiFi", "Traditional Restaurant", "Cultural Tours", "Heritage Decor"],
-        description: `Charming heritage property showcasing local culture and ${preferences.destination} traditions`,
-        aiInsight: `Perfect for experiencing authentic ${preferences.destination} culture while enjoying modern comfort and ${preferences.amenities.join(", ")} amenities.`,
-        bookingUrl: null,
-        coordinates: null,
-        images: null
-      }
-    ];
+
 
     try {
       const model = genAI.getGenerativeModel({ model: "models/gemini-2.5-flash" });
@@ -199,35 +202,45 @@ export class AITravelPlanner {
 
       const result = await model.generateContent(prompt);
       const response = await result.response;
-      const text = response.text();
       
-      console.log("📥 Raw Response:", text.substring(0, 300));
+      // Correct way to extract text from Gemini response
+      const candidates = response.candidates;
+      if (!candidates || candidates.length === 0) {
+        throw new Error("No candidates in Gemini response");
+      }
+      
+      const content = candidates[0].content;
+      if (!content || !content.parts || content.parts.length === 0) {
+        throw new Error("No content parts in Gemini response");
+      }
+      
+      const text = content.parts[0].text;
+      if (!text) {
+        throw new Error("No text content in Gemini response");
+      }
+      
+      console.log("📥 Raw Hotel Response:", text.substring(0, 300) + "...");
 
       const jsonMatch = text.match(/\[[\s\S]*\]/);
-      if (jsonMatch) {
-        try {
-          const hotels = JSON.parse(jsonMatch[0]);
-          console.log(`✅ Successfully parsed ${hotels.length} hotels from AI`);
-          return hotels.map((hotel: any) => ({
-            ...hotel,
-            bookingUrl: null,
-            coordinates: null,
-            images: null
-          }));
-        } catch (parseError) {
-          console.log("⚠️ JSON parsing failed, using fallback");
-        }
+      if (!jsonMatch) {
+        throw new Error("No valid JSON array found in Gemini response");
       }
 
-      // Return fallback data instead of throwing error
-      console.log("⚠️ No valid JSON found, using fallback hotels");
-    } catch (error) {
-      console.error("❌ Hotel Error:", error);
-    }
+      const hotels = JSON.parse(jsonMatch[0]);
+      console.log(`✅ Successfully parsed ${hotels.length} hotels from AI`);
       
-    // Always return fallback data to ensure UI shows something
-    console.log("📋 Returning fallback hotel data");
-    return fallbackHotels;
+      return hotels.map((hotel: any) => ({
+        ...hotel,
+        bookingUrl: null,
+        coordinates: null,
+        images: null
+      }));
+      
+    } catch (error) {
+      console.error("❌ Hotel Recommendation Error:", error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      throw new Error(`Failed to get hotel recommendations: ${errorMessage}`);
+    }
   }
 
   async discoverHiddenGems(destination: string, preferences: { 
