@@ -218,6 +218,13 @@ export interface AIRecommendation {
   }[];
   totalEstimatedCost: number;
   tips: string[];
+  destinationCompatibility?: {
+    unavailableInterests: string[];
+    unavailableFoods: string[];
+    unavailableActivities: string[];
+    alternativeSuggestions: string[];
+    compatibilityNote: string;
+  };
 }
 
 // New AI Recommendation Types

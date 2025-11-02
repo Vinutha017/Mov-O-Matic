@@ -320,7 +320,7 @@ export default function Itinerary() {
                                     <DollarSign className="w-4 h-4 text-green-500" />
                                     <span>₹{hotel.pricePerNight}/night</span>
                                   </div>
-                                  {hotel.amenities && (
+                                  {hotel.amenities && Array.isArray(hotel.amenities) && (
                                     <div className="flex flex-wrap gap-1 mt-2">
                                       {hotel.amenities.slice(0, 4).map((amenity: string, i: number) => (
                                         <span key={i} className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs">
@@ -548,13 +548,104 @@ export default function Itinerary() {
                   <CardContent>
                     {trip.aiRecommendation && trip.aiRecommendation.itinerary ? (
                       <div className="space-y-6">
+                        {/* Destination Compatibility Warnings */}
+                        {trip.aiRecommendation.destinationCompatibility && (
+                          <div className="mb-6">
+                            {(trip.aiRecommendation.destinationCompatibility.unavailableInterests?.length > 0 ||
+                              trip.aiRecommendation.destinationCompatibility.unavailableFoods?.length > 0 ||
+                              trip.aiRecommendation.destinationCompatibility.unavailableActivities?.length > 0) && (
+                              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
+                                <div className="flex items-start gap-2">
+                                  <div className="w-5 h-5 text-amber-600 mt-0.5">⚠️</div>
+                                  <div className="flex-1">
+                                    <h4 className="font-semibold text-amber-800 mb-2">
+                                      Destination Compatibility Notice
+                                    </h4>
+                                    <p className="text-amber-700 text-sm mb-3">
+                                      {trip.aiRecommendation.destinationCompatibility.compatibilityNote}
+                                    </p>
+                                    
+                                    {trip.aiRecommendation.destinationCompatibility.unavailableInterests?.length > 0 && (
+                                      <div className="mb-2">
+                                        <span className="font-medium text-amber-800">Unavailable Interests: </span>
+                                        <span className="text-amber-700">
+                                          {trip.aiRecommendation.destinationCompatibility.unavailableInterests.join(', ')}
+                                        </span>
+                                      </div>
+                                    )}
+                                    
+                                    {trip.aiRecommendation.destinationCompatibility.unavailableFoods?.length > 0 && (
+                                      <div className="mb-2">
+                                        <span className="font-medium text-amber-800">Limited Food Options: </span>
+                                        <span className="text-amber-700">
+                                          {trip.aiRecommendation.destinationCompatibility.unavailableFoods.join(', ')}
+                                        </span>
+                                      </div>
+                                    )}
+                                    
+                                    {trip.aiRecommendation.destinationCompatibility.unavailableActivities?.length > 0 && (
+                                      <div className="mb-2">
+                                        <span className="font-medium text-amber-800">Unavailable Activities: </span>
+                                        <span className="text-amber-700">
+                                          {trip.aiRecommendation.destinationCompatibility.unavailableActivities.join(', ')}
+                                        </span>
+                                      </div>
+                                    )}
+                                    
+                                    {trip.aiRecommendation.destinationCompatibility.alternativeSuggestions?.length > 0 && (
+                                      <div className="mt-3 pt-2 border-t border-amber-200">
+                                        <span className="font-medium text-amber-800">💡 Alternative Suggestions: </span>
+                                        <ul className="text-amber-700 mt-1">
+                                          {trip.aiRecommendation.destinationCompatibility.alternativeSuggestions.map((suggestion: string, i: number) => (
+                                            <li key={i} className="text-sm">• {suggestion}</li>
+                                          ))}
+                                        </ul>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                            
+                            {(!trip.aiRecommendation.destinationCompatibility.unavailableInterests?.length &&
+                              !trip.aiRecommendation.destinationCompatibility.unavailableFoods?.length &&
+                              !trip.aiRecommendation.destinationCompatibility.unavailableActivities?.length) && (
+                              <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-5 h-5 text-green-600">✅</div>
+                                  <div>
+                                    <h4 className="font-semibold text-green-800">Perfect Match!</h4>
+                                    <p className="text-green-700 text-sm">
+                                      All your selected preferences are available at {trip.destination}!
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
                         {/* AI Generated Itinerary */}
                         {trip.aiRecommendation.itinerary.map((day: any, index: number) => (
                           <Card key={day.day || index} className="border-l-4 border-l-blue-500">
                             <CardHeader>
                               <CardTitle className="text-lg flex items-center gap-2">
                                 <Calendar className="w-5 h-5 text-blue-500" />
-                                {day.title || `Day ${day.day}`}
+                                <div className="flex flex-col">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-blue-600 font-semibold">Day {day.day}</span>
+                                    {day.date && (
+                                      <span className="text-sm bg-blue-50 text-blue-700 px-2 py-1 rounded-full">
+                                        {day.date}
+                                      </span>
+                                    )}
+                                  </div>
+                                  {(day.title || day.dayTitle) && (
+                                    <span className="text-base font-medium text-gray-800 mt-1">
+                                      {day.title || day.dayTitle}
+                                    </span>
+                                  )}
+                                </div>
                               </CardTitle>
                               {day.theme && (
                                 <p className="text-sm text-gray-600">{day.theme}</p>
