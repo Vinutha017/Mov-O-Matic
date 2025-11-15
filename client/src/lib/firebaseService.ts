@@ -41,7 +41,9 @@ export const createUserProfile = async (user: User, additionalData?: Partial<Use
   try {
     console.log('🔥 Creating user profile for:', user.uid);
     console.log('📧 User email:', user.email);
-    console.log('📋 Additional data:', additionalData);
+    console.log('� Display name:', user.displayName);
+    console.log('�📋 Additional data:', additionalData);
+    console.log('🗂️ Collection path:', `users/${user.uid}`);
     
     // Use cache first for better performance
     const userDoc = await getDoc(userRef);
@@ -59,19 +61,48 @@ export const createUserProfile = async (user: User, additionalData?: Partial<Use
         ...additionalData
       };
       
-      console.log('💾 Saving user data:', userData);
+      console.log('💾 Saving user data to Firestore:', userData);
       
-      // Use batch write for better performance
+      // Use setDoc with merge to ensure data is saved properly
       await setDoc(userRef, userData, { merge: true });
       
-      console.log('✅ User profile saved successfully!');
+      console.log('✅ User profile saved successfully to users collection!');
+      console.log('🔍 Document ID:', user.uid);
+      
+      // Verify the document was created by reading it back
+      const verifyDoc = await getDoc(userRef);
+      if (verifyDoc.exists()) {
+        console.log('✅ Verification: Document exists in users collection');
+        console.log('📄 Saved data:', verifyDoc.data());
+      } else {
+        console.error('❌ Verification failed: Document not found after creation');
+      }
+      
       return userData;
     }
     
     return userDoc.data() as UserProfile;
-  } catch (error) {
-    console.error('Error creating user profile:', error);
-    throw error;
+  } catch (error: any) {
+    console.error('❌ Error creating user profile:', error);
+    console.error('📧 Failed for user:', user.email);
+    console.error('🆔 User ID:', user.uid);
+    console.error('📋 Error details:', {
+      code: error.code,
+      message: error.message,
+      stack: error.stack
+    });
+    
+    // Provide more specific error messages
+    if (error.code === 'permission-denied') {
+      throw new Error('Permission denied: Unable to create user profile. Please check Firestore security rules.');
+    } else if (error.code === 'unavailable') {
+      throw new Error('Firestore service unavailable. Please try again later.');
+    } else if (error.code === 'already-exists') {
+      console.log('ℹ️ User profile already exists, this is normal for existing users');
+      return await getUserProfile(user.uid);
+    }
+    
+    throw new Error(`Failed to create user profile: ${error.message}`);
   }
 };
 
@@ -101,6 +132,46 @@ export const updateUserProfile = async (uid: string, data: Partial<UserProfile>)
   } catch (error) {
     console.error('Error updating user profile:', error);
     throw error;
+  }
+};
+
+// Admin/Debug Functions
+export const getAllUsers = async (): Promise<UserProfile[]> => {
+  try {
+    console.log('📋 Fetching all users from users collection...');
+    const usersRef = collection(db, 'users');
+    const snapshot = await getDocs(usersRef);
+    
+    const users: UserProfile[] = [];
+    snapshot.forEach((doc) => {
+      users.push(doc.data() as UserProfile);
+    });
+    
+    console.log(`✅ Found ${users.length} users in collection`);
+    console.log('👥 Users:', users.map(u => ({ uid: u.uid, email: u.email, name: u.displayName })));
+    
+    return users;
+  } catch (error) {
+    console.error('❌ Error fetching users:', error);
+    throw error;
+  }
+};
+
+export const verifyUserExists = async (uid: string): Promise<boolean> => {
+  try {
+    const userRef = doc(db, 'users', uid);
+    const userDoc = await getDoc(userRef);
+    const exists = userDoc.exists();
+    
+    console.log(`🔍 User ${uid} exists in collection:`, exists);
+    if (exists) {
+      console.log('📄 User data:', userDoc.data());
+    }
+    
+    return exists;
+  } catch (error) {
+    console.error('❌ Error verifying user:', error);
+    return false;
   }
 };
 

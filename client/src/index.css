@@ -479,4 +479,270 @@
   animation: move-left-slow 28s linear infinite;
 }
 
+/* Print and PDF generation styles */
+@media print {
+  .print-hidden {
+    display: none !important;
+  }
+  
+  .print-page-break {
+    page-break-before: always;
+  }
+  
+  body {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+    font-size: 14px !important;
+  }
+  
+  .travel-container {
+    max-width: 100% !important;
+    padding: 15px !important;
+    margin: 0 !important;
+  }
+  
+  .grid {
+    break-inside: avoid;
+  }
+  
+  .card {
+    break-inside: avoid;
+    margin-bottom: 12px !important;
+  }
+  
+  .text-sm {
+    font-size: 12px !important;
+  }
+  
+  .text-lg {
+    font-size: 16px !important;
+  }
+  
+  .text-xl {
+    font-size: 18px !important;
+  }
+  
+  .text-2xl {
+    font-size: 20px !important;
+  }
+}
+
+/* PDF generation optimizations */
+.pdf-content {
+  background: white !important;
+  color: #1a1a1a !important;
+  font-size: 14px !important;
+  line-height: 1.5 !important;
+  padding: 0 !important;
+  width: 100% !important;
+  max-width: none !important;
+}
+
+.pdf-content .bg-gray-50,
+.pdf-content .bg-blue-50,
+.pdf-content .bg-green-50,
+.pdf-content .bg-yellow-50,
+.pdf-content .bg-orange-50,
+.pdf-content .bg-purple-50 {
+  background: #f8f9fa !important;
+  border: 1px solid #e9ecef !important;
+}
+
+.pdf-content .text-gray-500,
+.pdf-content .text-gray-600 {
+  color: #495057 !important;
+}
+
+.pdf-content .text-blue-600,
+.pdf-content .text-blue-700 {
+  color: #0d6efd !important;
+}
+
+.pdf-content .text-green-600,
+.pdf-content .text-green-700 {
+  color: #198754 !important;
+}
+
+.pdf-content .text-orange-600,
+.pdf-content .text-orange-700 {
+  color: #fd7e14 !important;
+}
+
+/* Improve spacing and layout for PDF */
+.pdf-content .space-y-6 > * + * {
+  margin-top: 20px !important;
+}
+
+.pdf-content .space-y-4 > * + * {
+  margin-top: 14px !important;
+}
+
+.pdf-content .mb-8 {
+  margin-bottom: 24px !important;
+}
+
+.pdf-content .mb-6 {
+  margin-bottom: 18px !important;
+}
+
+.pdf-content .mb-4 {
+  margin-bottom: 14px !important;
+}
+
+.pdf-content .p-4 {
+  padding: 12px !important;
+}
+
+.pdf-content .grid {
+  display: grid !important;
+  gap: 12px !important;
+}
+
+.pdf-content .md\\:grid-cols-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+}
+
+.pdf-content .lg\\:grid-cols-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+}
+
+.pdf-content .rounded,
+.pdf-content .rounded-lg {
+  border-radius: 4px !important;
+}
+
+/* Temporary class during PDF generation */
+.pdf-generating {
+  background: white !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+  font-size: 12px !important;
+  line-height: 1.4 !important;
+}
+
+.pdf-generating * {
+  color: #1a1a1a !important;
+  box-sizing: border-box !important;
+}
+
+.pdf-generating .bg-gray-50,
+.pdf-generating .bg-blue-50,
+.pdf-generating .bg-green-50,
+.pdf-generating .bg-yellow-50 {
+  background: #f8f9fa !important;
+  border: 1px solid #e9ecef !important;
+}
+
+.pdf-generating .text-gray-500,
+.pdf-generating .text-gray-600 {
+  color: #495057 !important;
+}
+
+.pdf-generating .border {
+  border-color: #dee2e6 !important;
+}
+
+.pdf-generating .travel-container {
+  max-width: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  width: 100% !important;
+}
+
+.pdf-generating .grid {
+  display: grid !important;
+  gap: 10px !important;
+}
+
+.pdf-generating .md\\:grid-cols-2 {
+  grid-template-columns: repeat(2, 1fr) !important;
+}
+
+.pdf-generating .lg\\:grid-cols-3 {
+  grid-template-columns: repeat(2, 1fr) !important; /* Force 2 columns instead of 3 for better fit */
+}
+
+.pdf-generating .lg\\:col-span-2 {
+  grid-column: span 2 !important;
+}
+
+.pdf-generating .card {
+  break-inside: avoid !important;
+  margin-bottom: 10px !important;
+  padding: 8px !important;
+  word-wrap: break-word !important;
+  overflow-wrap: break-word !important;
+}
+
+.pdf-generating * {
+  word-wrap: break-word !important;
+  overflow-wrap: break-word !important;
+  max-width: 100% !important;
+}
+
+.pdf-generating .text-sm {
+  font-size: 10px !important;
+}
+
+.pdf-generating .text-lg {
+  font-size: 14px !important;
+}
+
+.pdf-generating .text-xl {
+  font-size: 16px !important;
+}
+
+.pdf-generating .text-2xl {
+  font-size: 18px !important;
+}
+
+.pdf-generating .text-3xl {
+  font-size: 20px !important;
+}
+
+.pdf-generating .space-y-6 > * + * {
+  margin-top: 12px !important;
+}
+
+.pdf-generating .space-y-4 > * + * {
+  margin-top: 8px !important;
+}
+
+.pdf-generating .mb-8 {
+  margin-bottom: 16px !important;
+}
+
+.pdf-generating .mb-6 {
+  margin-bottom: 12px !important;
+}
+
+.pdf-generating .mb-4 {
+  margin-bottom: 8px !important;
+}
+
+/* PDF title visibility */
+.pdf-title-section {
+  display: none;
+}
+
+.pdf-generating .pdf-title-section {
+  display: block !important;
+}
+
+.pdf-content .travel-container {
+  padding: 8px !important;
+  max-width: 100% !important;
+}
+
+.pdf-content .grid {
+  gap: 12px !important;
+}
+
+.pdf-content .card {
+  margin-bottom: 16px !important;
+  border: 1px solid #dee2e6 !important;
+  box-shadow: none !important;
+}
+
 

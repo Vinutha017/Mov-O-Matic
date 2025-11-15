@@ -1,5 +1,5 @@
 import { useParams } from "wouter";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Header from "@/components/header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +8,9 @@ import { ArrowLeft, Share, Download, MapPin, Calendar, Users, DollarSign } from 
 import { Link } from "wouter";
 import { getTrip, type Trip } from "@/lib/firebaseService";
 import { useAuth } from "@/contexts/AuthContext";
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
+import { useToast } from "@/hooks/use-toast";
 
 export default function Itinerary() {
   const { id } = useParams() as { id: string };
@@ -15,6 +18,9 @@ export default function Itinerary() {
   const [trip, setTrip] = useState<Trip | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const printRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
 
   // Get trip ID from URL params or localStorage
   const tripId = id || localStorage.getItem('currentTripId');
@@ -128,6 +134,206 @@ export default function Itinerary() {
     }
   };
 
+  // Handle PDF download
+  const handleDownload = async () => {
+    if (!trip || !printRef.current) return;
+    
+    setIsGeneratingPDF(true);
+    
+    try {
+      // Create a copy of the content for PDF generation
+      const element = printRef.current;
+      
+      // Temporarily style the element for better PDF generation
+      const originalStyle = element.style.cssText;
+      const originalClass = element.className;
+      
+      // Set optimal width for PDF content
+      element.style.width = '210mm'; // A4 width
+      element.style.maxWidth = 'none';
+      element.style.minHeight = 'auto';
+      element.style.overflow = 'visible';
+      element.style.transform = 'scale(1)';
+      element.style.transformOrigin = 'top left';
+      element.style.fontSize = '14px';
+      element.style.lineHeight = '1.5';
+      element.style.padding = '15mm';
+      element.style.boxSizing = 'border-box';
+      element.className = originalClass + ' pdf-generating';
+      
+      // Wait for layout to settle
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
+      const canvas = await html2canvas(element, {
+        scale: 1.5, // Balanced quality
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        width: element.offsetWidth,
+        height: element.scrollHeight,
+        scrollX: 0,
+        scrollY: 0,
+        logging: false,
+        ignoreElements: (element) => {
+          return element.classList?.contains('print-hidden') || false;
+        }
+      });
+      
+      // Restore original styles
+      element.style.cssText = originalStyle;
+      element.className = originalClass;
+      
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+      
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      
+      const canvasWidth = canvas.width;
+      const canvasHeight = canvas.height;
+      
+      // Minimal margins for maximum content area
+      const margin = 5; // 5mm margin
+      const availableWidth = pdfWidth - (margin * 2);
+      const availableHeight = pdfHeight - (margin * 2);
+      
+      // Calculate scaling to fit the content properly
+      const widthRatio = availableWidth / canvasWidth;
+      const heightRatio = availableHeight / canvasHeight;
+      
+      // Use the smaller ratio to ensure everything fits
+      const scale = Math.min(widthRatio, 1); // Don't scale up, only down if needed
+      
+      const imgWidth = canvasWidth * scale;
+      const imgHeight = canvasHeight * scale;
+      
+      // Center the content
+      const imgX = (pdfWidth - imgWidth) / 2;
+      const imgY = margin;
+      
+      // Check if content needs multiple pages
+      if (imgHeight > availableHeight) {
+        const pageHeight = availableHeight;
+        const pages = Math.ceil(imgHeight / pageHeight);
+        
+        for (let i = 0; i < pages; i++) {
+          if (i > 0) pdf.addPage();
+          
+          // Calculate the source area for this page
+          const sourceY = (i * pageHeight) / scale;
+          const sourceHeight = Math.min(pageHeight / scale, canvasHeight - sourceY);
+          
+          if (sourceHeight > 0) {
+            // Create a temporary canvas for each page
+            const pageCanvas = document.createElement('canvas');
+            const ctx = pageCanvas.getContext('2d');
+            if (ctx) {
+              pageCanvas.width = canvasWidth;
+              pageCanvas.height = sourceHeight;
+              
+              // Clear the canvas
+              ctx.fillStyle = '#ffffff';
+              ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+              
+              // Draw the portion of the original canvas for this page
+              ctx.drawImage(
+                canvas,
+                0, sourceY,
+                canvasWidth, sourceHeight,
+                0, 0,
+                pageCanvas.width, pageCanvas.height
+              );
+              
+              // Add the page image with proper scaling
+              const pageImgWidth = pageCanvas.width * scale;
+              const pageImgHeight = pageCanvas.height * scale;
+              const pageImgX = (pdfWidth - pageImgWidth) / 2;
+              
+              pdf.addImage(
+                pageCanvas.toDataURL('image/png'), 
+                'PNG', 
+                pageImgX, 
+                margin, 
+                pageImgWidth, 
+                pageImgHeight
+              );
+            }
+          }
+        }
+      } else {
+        // Single page - center the content
+        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', imgX, imgY, imgWidth, imgHeight);
+      }
+      
+      // Save the PDF
+      const filename = `${trip.title.replace(/[^a-zA-Z0-9]/g, '_')}_Itinerary.pdf`;
+      pdf.save(filename);
+      
+      toast({
+        title: "Download Complete",
+        description: "Your itinerary has been downloaded successfully!",
+      });
+      
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast({
+        title: "Download Failed",
+        description: "There was an error generating your PDF. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  };
+
+  // Handle sharing
+  const handleShare = async () => {
+    if (!trip) return;
+    
+    const shareData = {
+      title: `${trip.title} - Travel Itinerary`,
+      text: `Check out my travel itinerary for ${trip.destination}!`,
+      url: window.location.href
+    };
+    
+    try {
+      // Check if native Web Share API is available
+      if (navigator.share) {
+        await navigator.share(shareData);
+        toast({
+          title: "Shared Successfully",
+          description: "Your itinerary has been shared!",
+        });
+      } else {
+        // Fallback: Copy URL to clipboard
+        await navigator.clipboard.writeText(window.location.href);
+        toast({
+          title: "Link Copied",
+          description: "Itinerary link copied to clipboard!",
+        });
+      }
+    } catch (error) {
+      console.error('Error sharing:', error);
+      // Fallback: Copy to clipboard
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        toast({
+          title: "Link Copied",
+          description: "Itinerary link copied to clipboard!",
+        });
+      } catch (clipboardError) {
+        toast({
+          title: "Share Failed",
+          description: "Unable to share or copy link. Please copy the URL manually.",
+          variant: "destructive"
+        });
+      }
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -178,9 +384,9 @@ export default function Itinerary() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
-      <div className="travel-container py-8">
+      <div className="travel-container py-8 pdf-content" ref={printRef}>
         {/* Header Section */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-6 print-hidden">
           <Link href="/dashboard">
             <Button variant="ghost" className="mb-4">
               <ArrowLeft className="w-4 h-4 mr-2" />
@@ -188,14 +394,31 @@ export default function Itinerary() {
             </Button>
           </Link>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={handleShare}>
               <Share className="w-4 h-4 mr-2" />
               Share
             </Button>
-            <Button variant="outline" size="sm">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleDownload}
+              disabled={isGeneratingPDF}
+            >
               <Download className="w-4 h-4 mr-2" />
-              Download
+              {isGeneratingPDF ? 'Generating...' : 'Download'}
             </Button>
+          </div>
+        </div>
+
+        {/* PDF Title - Only visible in PDF */}
+        <div className="pdf-title-section mb-8">
+          <div className="text-center border-b pb-4">
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">{trip.title}</h1>
+            <p className="text-lg text-gray-600">{trip.destination}</p>
+            <p className="text-sm text-gray-500 mt-2">
+              {formatDate(trip.startDate)} - {formatDate(trip.endDate)} • {duration} {duration === 1 ? 'day' : 'days'}
+            </p>
+            <p className="text-xs text-gray-500">Generated by MOV-O-MATIC Travel Planner</p>
           </div>
         </div>
 
@@ -278,14 +501,365 @@ export default function Itinerary() {
           </Card>
         </div>
 
+        {/* AI Recommended Hotels - PDF Priority Section */}
+        {trip.aiRecommendation && trip.aiRecommendation.hotels && (
+          <div className="mb-8">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-2xl">
+                  🏨 AI Recommended Hotels
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-6 md:grid-cols-2">
+                  {trip.aiRecommendation.hotels.map((hotel: any, index: number) => (
+                    <Card key={index} className="border border-gray-200 shadow-sm">
+                      <CardContent className="p-6">
+                        <h4 className="font-bold text-xl mb-3">{hotel.name}</h4>
+                        <div className="space-y-3 text-sm">
+                          <div className="flex items-center gap-2">
+                            <MapPin className="w-5 h-5 text-gray-500" />
+                            <span className="font-medium">{hotel.location}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-yellow-500 text-lg">⭐</span>
+                            <span className="font-medium">{hotel.rating}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <DollarSign className="w-5 h-5 text-green-500" />
+                            <span className="font-bold text-green-600">₹{hotel.pricePerNight}/night</span>
+                          </div>
+                          {hotel.amenities && Array.isArray(hotel.amenities) && (
+                            <div className="flex flex-wrap gap-2 mt-3">
+                              {hotel.amenities.slice(0, 6).map((amenity: string, i: number) => (
+                                <span key={i} className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+                                  {amenity}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                          <p className="text-gray-700 mt-3 leading-relaxed">{hotel.description}</p>
+                          {hotel.aiInsight && (
+                            <div className="bg-blue-50 p-3 rounded-lg text-blue-800 text-sm mt-3">
+                              <span className="font-semibold">💡 AI Insight:</span> {hotel.aiInsight}
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* AI Recommended Attractions - PDF Priority Section */}
+        {trip.aiRecommendation && trip.aiRecommendation.attractions && (
+          <div className="mb-8">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-2xl">
+                  🎯 AI Recommended Attractions
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                  {trip.aiRecommendation.attractions.map((attraction: any, index: number) => (
+                    <Card key={index} className="border border-gray-200 shadow-sm">
+                      <CardContent className="p-5">
+                        <h4 className="font-bold text-lg mb-3">{attraction.title}</h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex items-center gap-2">
+                            <MapPin className="w-4 h-4 text-gray-500" />
+                            <span className="font-medium">{attraction.location}</span>
+                          </div>
+                          {attraction.cost && (
+                            <div className="flex items-center gap-2">
+                              <DollarSign className="w-4 h-4 text-green-500" />
+                              <span className="font-bold text-green-600">₹{attraction.cost}</span>
+                            </div>
+                          )}
+                          {attraction.duration && (
+                            <div className="flex items-center gap-2 text-blue-600">
+                              <span>⏱️</span>
+                              <span className="font-medium">{attraction.duration} minutes</span>
+                            </div>
+                          )}
+                          {attraction.bestTime && (
+                            <div className="flex items-center gap-2 text-purple-600">
+                              <span>🕒</span>
+                              <span className="font-medium">Best time: {attraction.bestTime}</span>
+                            </div>
+                          )}
+                          <p className="text-gray-700 mt-3 leading-relaxed">{attraction.description}</p>
+                          {attraction.tips && (
+                            <div className="bg-yellow-50 p-3 rounded-lg text-yellow-800 text-sm mt-3">
+                              <span className="font-semibold">💡 Tips:</span> {attraction.tips}
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* AI Recommended Restaurants - PDF Priority Section */}
+        {trip.aiRecommendation && trip.aiRecommendation.restaurants && (
+          <div className="mb-8">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-2xl">
+                  🍽️ AI Recommended Restaurants
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                  {trip.aiRecommendation.restaurants.map((restaurant: any, index: number) => (
+                    <Card key={index} className="border border-gray-200 shadow-sm">
+                      <CardContent className="p-5">
+                        <h4 className="font-bold text-lg mb-3">{restaurant.name}</h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex items-center gap-2">
+                            <MapPin className="w-4 h-4 text-gray-500" />
+                            <span className="font-medium">{restaurant.location}</span>
+                          </div>
+                          {restaurant.cuisine && (
+                            <div className="flex items-center gap-2">
+                              <span>🍴</span>
+                              <span className="font-medium">{restaurant.cuisine}</span>
+                            </div>
+                          )}
+                          {restaurant.priceRange && (
+                            <div className="flex items-center gap-2">
+                              <DollarSign className="w-4 h-4 text-green-500" />
+                              <span className="font-bold text-green-600">{restaurant.priceRange}</span>
+                            </div>
+                          )}
+                          {restaurant.rating && (
+                            <div className="flex items-center gap-2">
+                              <span className="text-yellow-500 text-lg">⭐</span>
+                              <span className="font-medium">{restaurant.rating}</span>
+                            </div>
+                          )}
+                          <p className="text-gray-700 mt-3 leading-relaxed">{restaurant.description}</p>
+                          {restaurant.specialties && Array.isArray(restaurant.specialties) && (
+                            <div className="flex flex-wrap gap-2 mt-3">
+                              {restaurant.specialties.slice(0, 4).map((specialty: string, i: number) => (
+                                <span key={i} className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-sm font-medium">
+                                  {specialty}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                          {restaurant.recommendation && (
+                            <div className="bg-green-50 p-3 rounded-lg text-green-800 text-sm mt-3">
+                              <span className="font-semibold">👨‍🍳 Chef's Pick:</span> {restaurant.recommendation}
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Detailed Itinerary - PDF Priority Section */}
+        {trip.aiRecommendation && trip.aiRecommendation.itinerary && (
+          <div className="mb-8 print-page-break">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-2xl">
+                  📅 Detailed Itinerary
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  {trip.aiRecommendation.itinerary.map((day: any, index: number) => (
+                    <Card key={day.day || index} className="border-l-4 border-l-blue-500 shadow-sm">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-xl flex items-center gap-2">
+                          <Calendar className="w-6 h-6 text-blue-500" />
+                          <div className="flex flex-col">
+                            <div className="flex items-center gap-2">
+                              <span className="text-blue-600 font-bold">Day {day.day}</span>
+                              {day.date && (
+                                <span className="text-sm bg-blue-100 text-blue-800 px-3 py-1 rounded-full font-medium">
+                                  {day.date}
+                                </span>
+                              )}
+                            </div>
+                            {(day.title || day.dayTitle) && (
+                              <span className="text-lg font-semibold text-gray-800 mt-1">
+                                {day.title || day.dayTitle}
+                              </span>
+                            )}
+                          </div>
+                        </CardTitle>
+                        {day.theme && (
+                          <p className="text-gray-600 ml-8">{day.theme}</p>
+                        )}
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-5">
+                          {/* Activities */}
+                          {day.activities && (
+                            <div>
+                              <h4 className="font-bold text-lg mb-3 text-gray-800">🎯 Activities:</h4>
+                              <div className="space-y-4">
+                                {day.activities.map((activity: any, actIndex: number) => (
+                                  <div key={actIndex} className="text-sm">
+                                    {typeof activity === 'string' ? (
+                                      <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                                        <span className="text-blue-500 mt-1 font-bold">•</span>
+                                        <span className="text-gray-700">{activity}</span>
+                                      </div>
+                                    ) : (
+                                      <div className="bg-blue-50 p-4 rounded-lg border-l-4 border-l-blue-600">
+                                        <div className="flex items-start justify-between mb-3">
+                                          <h5 className="font-bold text-gray-900 text-base">{activity.title}</h5>
+                                          {activity.startTime && activity.endTime && (
+                                            <span className="text-sm text-blue-700 bg-blue-200 px-3 py-1 rounded-full font-medium">
+                                              {activity.startTime} - {activity.endTime}
+                                            </span>
+                                          )}
+                                        </div>
+                                        {activity.description && (
+                                          <p className="text-gray-700 mb-3 leading-relaxed">{activity.description}</p>
+                                        )}
+                                        <div className="flex flex-wrap gap-4 text-sm text-gray-600">
+                                          {activity.location && (
+                                            <div className="flex items-center gap-1">
+                                              <MapPin className="w-4 h-4 text-red-500" />
+                                              <span className="font-medium">{activity.location}</span>
+                                            </div>
+                                          )}
+                                          {activity.duration && (
+                                            <div className="flex items-center gap-1">
+                                              <span className="text-purple-600">⏱️</span>
+                                              <span className="font-medium">{activity.duration} min</span>
+                                            </div>
+                                          )}
+                                          {activity.cost && activity.cost !== '0' && (
+                                            <div className="flex items-center gap-1">
+                                              <DollarSign className="w-4 h-4 text-green-500" />
+                                              <span className="text-green-600 font-bold">₹{activity.cost}</span>
+                                            </div>
+                                          )}
+                                        </div>
+                                        {activity.notes && (
+                                          <div className="mt-3 text-sm text-blue-800 bg-blue-100 p-3 rounded-lg">
+                                            <span className="font-semibold">💡 Pro Tip:</span> {activity.notes}
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          
+                          {/* Meals */}
+                          {day.meals && (
+                            <div>
+                              <h4 className="font-bold text-lg mb-3 text-gray-800">🍽️ Meals:</h4>
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                {day.meals.breakfast && (
+                                  <div className="bg-yellow-50 p-3 rounded-lg">
+                                    <div className="font-semibold text-yellow-800">🌅 Breakfast:</div>
+                                    <div className="text-gray-700">{day.meals.breakfast}</div>
+                                  </div>
+                                )}
+                                {day.meals.lunch && (
+                                  <div className="bg-orange-50 p-3 rounded-lg">
+                                    <div className="font-semibold text-orange-800">☀️ Lunch:</div>
+                                    <div className="text-gray-700">{day.meals.lunch}</div>
+                                  </div>
+                                )}
+                                {day.meals.dinner && (
+                                  <div className="bg-purple-50 p-3 rounded-lg">
+                                    <div className="font-semibold text-purple-800">🌙 Dinner:</div>
+                                    <div className="text-gray-700">{day.meals.dinner}</div>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                          
+                          {/* Day Cost */}
+                          {day.totalCost && (
+                            <div className="bg-green-50 p-3 rounded-lg">
+                              <div className="font-bold text-green-800 text-base">
+                                💰 Daily Budget: {day.totalCost}
+                              </div>
+                            </div>
+                          )}
+                          
+                          {/* Tips */}
+                          {day.tips && (
+                            <div className="bg-yellow-50 p-4 rounded-lg border-l-4 border-l-yellow-400">
+                              <h4 className="font-bold text-yellow-800 mb-2">💡 Insider Tips:</h4>
+                              <p className="text-yellow-700 leading-relaxed">{day.tips}</p>
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                  
+                  {/* Trip Summary */}
+                  {trip.aiRecommendation.summary && (
+                    <Card className="bg-gradient-to-r from-green-50 to-blue-50 border-2 border-green-200 mt-6">
+                      <CardHeader>
+                        <CardTitle className="text-green-700 text-xl">🎯 Trip Summary</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-gray-700 mb-4 text-base leading-relaxed">{trip.aiRecommendation.summary.description}</p>
+                        {trip.aiRecommendation.summary.highlights && (
+                          <div className="mb-4">
+                            <h4 className="font-bold mb-3 text-gray-800">✨ Trip Highlights:</h4>
+                            <div className="grid gap-2">
+                              {trip.aiRecommendation.summary.highlights.map((highlight: string, index: number) => (
+                                <div key={index} className="text-gray-700 flex items-start gap-2 p-2 bg-white rounded">
+                                  <span className="text-green-500 mt-1">✨</span>
+                                  <span>{highlight}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {trip.aiRecommendation.summary.totalCost && (
+                          <div className="bg-green-100 p-4 rounded-lg">
+                            <div className="text-xl font-bold text-green-700">
+                              💰 Total Estimated Cost: {trip.aiRecommendation.summary.totalCost}
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
         {/* Trip Planning Details */}
-        <Card>
+        <Card className="print-page-break">
           <CardHeader>
             <CardTitle>Trip Planning Details</CardTitle>
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="planning" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-3 lg:w-[400px]">
+              <TabsList className="grid w-full grid-cols-3 lg:w-[400px] print-hidden">
                 <TabsTrigger value="planning">Planning Details</TabsTrigger>
                 <TabsTrigger value="preferences">Preferences</TabsTrigger>
                 <TabsTrigger value="itinerary">Itinerary</TabsTrigger>
@@ -293,9 +867,9 @@ export default function Itinerary() {
 
               <TabsContent value="planning">
                 <div className="space-y-6">
-                  {/* AI Generated Hotels */}
+                  {/* Duplicate Hotels for Tab Content (Hidden in Print) */}
                   {trip.aiRecommendation && trip.aiRecommendation.hotels && (
-                    <Card>
+                    <Card className="print-hidden">
                       <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                           🏨 AI Recommended Hotels
@@ -346,7 +920,7 @@ export default function Itinerary() {
 
                   {/* AI Generated Attractions */}
                   {trip.aiRecommendation && trip.aiRecommendation.attractions && (
-                    <Card>
+                    <Card className="print-hidden">
                       <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                           🎯 AI Recommended Attractions
@@ -396,7 +970,7 @@ export default function Itinerary() {
 
                   {/* AI Generated Restaurants */}
                   {trip.aiRecommendation && trip.aiRecommendation.restaurants && (
-                    <Card>
+                    <Card className="print-hidden">
                       <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                           🍽️ AI Recommended Restaurants
