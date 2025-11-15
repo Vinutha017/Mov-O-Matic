@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Route, User, LayoutDashboard } from "lucide-react";
+import { Route, LayoutDashboard } from "lucide-react";
 import { Link } from "wouter";
 
 export default function Header() {
@@ -25,16 +25,6 @@ export default function Header() {
             <Link href="/signup">
               <Button variant="outline" className="text-blue-600 border-blue-200 hover:bg-blue-50 font-medium">
                 Sign Up
-              </Button>
-            </Link>
-            <Link href="/profile">
-              <Button 
-                variant="ghost" 
-                size="sm"
-                className="text-gray-600 hover:text-blue-600 hover:bg-blue-50 p-2 rounded-full transition-all duration-200 group"
-                title="Profile"
-              >
-                <User className="w-5 h-5 group-hover:scale-110 transition-transform" />
               </Button>
             </Link>
           </div>
