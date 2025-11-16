@@ -24,6 +24,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   updateUserProfile: (displayName: string, photoURL?: string) => Promise<void>;
+  refreshUserProfile: () => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   signInWithFacebook: () => Promise<void>;
   signInWithTwitter: () => Promise<void>;
@@ -144,6 +145,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
+  const refreshUserProfile = async () => {
+    if (currentUser) {
+      try {
+        console.log('🔄 Refreshing user profile for:', currentUser.uid);
+        const profile = await getUserProfile(currentUser.uid);
+        setUserProfile(profile);
+        console.log('✅ User profile refreshed successfully:', profile);
+      } catch (error) {
+        console.error('❌ Error refreshing user profile:', error);
+      }
+    }
+  };
+
   const signInWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
     const result = await signInWithPopup(auth, provider);
@@ -214,6 +228,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     logout,
     resetPassword,
     updateUserProfile,
+    refreshUserProfile,
     signInWithGoogle,
     signInWithFacebook,
     signInWithTwitter

@@ -277,26 +277,46 @@ export const createTrip = async (tripData: Omit<Trip, 'id' | 'createdAt' | 'upda
 
 export const getUserTrips = async (userId: string): Promise<Trip[]> => {
   try {
-    const tripsRef = collection(db, 'trips');
-    const q = query(
-      tripsRef, 
-      where('userId', '==', userId),
-      orderBy('createdAt', 'desc')
-    );
+    console.log('🔍 getUserTrips called with userId:', userId);
     
-    const querySnapshot = await getDocs(q);
+    const tripsRef = collection(db, 'trips');
+    
+    // First, let's try without orderBy to see if that's causing issues
+    const simpleQuery = query(tripsRef, where('userId', '==', userId));
+    
+    console.log('📊 Executing query: trips where userId ==', userId);
+    const querySnapshot = await getDocs(simpleQuery);
+    
+    console.log('📈 Query returned', querySnapshot.size, 'documents');
+    
     const trips: Trip[] = [];
     
     querySnapshot.forEach((doc) => {
+      console.log('📄 Found trip document:', doc.id, 'with data:', doc.data());
       trips.push({
         id: doc.id,
         ...doc.data()
       } as Trip);
     });
     
+    console.log('✅ getUserTrips returning', trips.length, 'trips for user', userId);
     return trips;
   } catch (error) {
-    console.error('Error fetching user trips:', error);
+    console.error('❌ Error fetching user trips for userId', userId, ':', error);
+    
+    // Let's also try to get ALL trips to see what's in the collection
+    try {
+      console.log('🔍 Debugging: Fetching ALL trips to see what exists...');
+      const allTripsSnapshot = await getDocs(collection(db, 'trips'));
+      console.log('📊 Total trips in collection:', allTripsSnapshot.size);
+      allTripsSnapshot.forEach((doc) => {
+        const data = doc.data();
+        console.log('📄 Trip:', doc.id, 'userId:', data.userId, 'title:', data.title);
+      });
+    } catch (debugError) {
+      console.error('❌ Debug query also failed:', debugError);
+    }
+    
     throw error;
   }
 };

@@ -2,9 +2,30 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { User } from "lucide-react";
 import { Link, useLocation } from "wouter";
+import { useEffect, useState } from "react";
 
 export default function StickyProfile() {
-  const { currentUser } = useAuth();
+  const [mounted, setMounted] = useState(false);
+  
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Don't render until component is mounted to avoid SSR issues
+  if (!mounted) {
+    return null;
+  }
+
+  let currentUser = null;
+  try {
+    const authData = useAuth();
+    currentUser = authData.currentUser;
+  } catch (error) {
+    // If AuthProvider is not available, don't render
+    console.warn('StickyProfile: AuthProvider not available');
+    return null;
+  }
+
   const [location] = useLocation();
   
   // Don't show on login/signup pages, home page, or the profile page itself

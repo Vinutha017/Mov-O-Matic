@@ -21,6 +21,7 @@ const AIRecommendations = lazy(() => import("@/pages/ai-recommendations"));
 const TripWizard = lazy(() => import("@/pages/trip-wizard"));
 const Login = lazy(() => import("@/pages/login"));
 const Signup = lazy(() => import("@/pages/signup"));
+const ForgotPassword = lazy(() => import("@/pages/forgot-password"));
 const Profile = lazy(() => import("@/pages/profile"));
 
 // Loading component
@@ -46,6 +47,11 @@ function Router() {
         <Route path="/signup">
           <PublicRoute>
             <Signup />
+          </PublicRoute>
+        </Route>
+        <Route path="/forgot-password">
+          <PublicRoute>
+            <ForgotPassword />
           </PublicRoute>
         </Route>
         <Route path="/welcome">
@@ -100,7 +106,7 @@ function App() {
       <AuthProvider>
         <TooltipProvider>
           <Toaster />
-          <StickyProfile />
+          {/* <StickyProfile /> */}
           <Router />
         </TooltipProvider>
       </AuthProvider>

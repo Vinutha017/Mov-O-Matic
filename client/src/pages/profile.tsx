@@ -6,15 +6,16 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { useTrips } from "@/hooks/use-trips";
+
 import { 
   User, 
   Mail, 
   Phone, 
   MapPin, 
-  Calendar, 
+  Calendar,
   Edit, 
   Save, 
   X,
@@ -23,17 +24,27 @@ import {
   Globe,
   Bell,
   Plane,
-  Clock,
-  Eye,
-  Trash2
+  TrendingUp
 } from "lucide-react";
-import { updateUserProfile } from "@/lib/firebaseService";
+
+import { updateUserProfile, getUserTrips, createTrip } from "@/lib/firebaseService";
+
+interface JourneyStats {
+  tripsPlanned: number;
+  destinationsExplored: number;
+  profileStatus: 'Complete' | 'Incomplete';
+}
 
 export default function Profile() {
-  const { currentUser, userProfile, logout } = useAuth();
+  const { currentUser, userProfile, logout, refreshUserProfile } = useAuth();
   const { toast } = useToast();
-  const { trips, loading: tripsLoading, refetch: fetchTrips, removeTrip } = useTrips();
   const [isEditing, setIsEditing] = useState(false);
+  const [journeyStats, setJourneyStats] = useState<JourneyStats>({
+    tripsPlanned: 0,
+    destinationsExplored: 0,
+    profileStatus: 'Incomplete'
+  });
+  const [loadingStats, setLoadingStats] = useState(true);
   const [editData, setEditData] = useState({
     displayName: "",
     phoneNumber: "",
@@ -52,10 +63,61 @@ export default function Profile() {
     }
   }, [userProfile]);
 
-  // Fetch user trips when component loads
+  // Fetch journey statistics
   useEffect(() => {
-    fetchTrips();
-  }, [currentUser]);
+    const fetchJourneyStats = async () => {
+      if (!currentUser?.uid) {
+        console.log('❌ No current user found');
+        setLoadingStats(false);
+        return;
+      }
+
+      try {
+        console.log('🔍 Fetching journey stats for user:', currentUser.uid);
+        setLoadingStats(true);
+        const userTrips = await getUserTrips(currentUser.uid);
+        console.log('📊 Retrieved trips:', userTrips);
+        
+        // Calculate unique destinations
+        const uniqueDestinations = new Set(
+          userTrips.map(trip => trip.destination).filter(dest => dest)
+        ).size;
+        console.log('🌍 Unique destinations:', uniqueDestinations);
+
+        // Debug userProfile data
+        console.log('🔍 Profile: User profile data:', userProfile);
+        console.log('📋 Profile fields check:', {
+          displayName: userProfile?.displayName,
+          city: userProfile?.city,
+          country: userProfile?.country,
+          phoneNumber: userProfile?.phoneNumber
+        });
+        
+        // Check profile completeness
+        const profileComplete = !!
+          (userProfile?.displayName && 
+           userProfile?.city && 
+           userProfile?.country && 
+           userProfile?.phoneNumber);
+        console.log('✅ Profile complete:', profileComplete);
+
+        const stats: JourneyStats = {
+          tripsPlanned: userTrips.length,
+          destinationsExplored: uniqueDestinations,
+          profileStatus: profileComplete ? 'Complete' : 'Incomplete'
+        };
+        console.log('📈 Setting journey stats:', stats);
+
+        setJourneyStats(stats);
+      } catch (error) {
+        console.error('❌ Error fetching journey stats:', error);
+      } finally {
+        setLoadingStats(false);
+      }
+    };
+
+    fetchJourneyStats();
+  }, [currentUser?.uid, userProfile]);
 
   const handleEdit = () => {
     setIsEditing(true);
@@ -74,315 +136,377 @@ export default function Profile() {
   };
 
   const handleSave = async () => {
-    if (!currentUser || !userProfile) return;
-
+    if (!currentUser) return;
+    
     try {
       await updateUserProfile(currentUser.uid, {
         displayName: editData.displayName,
         phoneNumber: editData.phoneNumber,
         city: editData.city,
-        country: editData.country,
+        country: editData.country
       });
-
+      
+      // Refresh the user profile in the context
+      await refreshUserProfile();
+      
+      setIsEditing(false);
       toast({
         title: "Profile Updated",
-        description: "Your profile information has been updated successfully.",
+        description: "Your profile information has been saved successfully.",
       });
-
-      setIsEditing(false);
-    } catch (error) {
+      
+      // Refresh journey stats to update profile status
+      const profileComplete = !!
+        (editData.displayName && 
+         editData.city && 
+         editData.country && 
+         editData.phoneNumber);
+      
+      setJourneyStats(prev => ({
+        ...prev,
+        profileStatus: profileComplete ? 'Complete' : 'Incomplete'
+      }));
+    } catch (error: any) {
       toast({
-        title: "Update Failed",
-        description: "Failed to update your profile. Please try again.",
+        title: "Error",
+        description: error.message || "Failed to update profile",
         variant: "destructive",
       });
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setEditData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+  const handleInputChange = (field: string, value: string) => {
+    setEditData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleDeleteTrip = async (tripId: string) => {
-    if (!confirm('Are you sure you want to delete this trip? This action cannot be undone.')) {
+  // Test function to create sample trips
+  const createSampleTrips = async () => {
+    if (!currentUser) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to create sample trips.",
+        variant: "destructive"
+      });
       return;
     }
 
     try {
-      await removeTrip(tripId);
+      console.log('🧪 Creating sample trips...');
+      
+      const sampleTrips = [
+        {
+          userId: currentUser.uid,
+          title: "Mumbai Adventure",
+          destination: "Mumbai, Maharashtra",
+          startDate: new Date(2025, 0, 15),
+          endDate: new Date(2025, 0, 18),
+          budget: 25000,
+          currency: "INR",
+          travelers: 2,
+          tripType: "cultural" as const,
+          status: "completed" as const
+        },
+        {
+          userId: currentUser.uid,
+          title: "Goa Beach Getaway",
+          destination: "Goa, India",
+          startDate: new Date(2025, 1, 10),
+          endDate: new Date(2025, 1, 15),
+          budget: 35000,
+          currency: "INR",
+          travelers: 4,
+          tripType: "relaxation" as const,
+          status: "planning" as const
+        },
+        {
+          userId: currentUser.uid,
+          title: "Rajasthan Heritage Tour",
+          destination: "Rajasthan, India",
+          startDate: new Date(2025, 2, 5),
+          endDate: new Date(2025, 2, 12),
+          budget: 45000,
+          currency: "INR",
+          travelers: 3,
+          tripType: "cultural" as const,
+          status: "planning" as const
+        }
+      ];
+
+      for (const trip of sampleTrips) {
+        const tripId = await createTrip(trip);
+        console.log('✅ Created sample trip:', tripId);
+      }
+      
       toast({
-        title: "Trip Deleted",
-        description: "Your trip has been deleted successfully.",
+        title: "Sample Trips Created! 🎉",
+        description: "3 sample trips have been added to test the statistics.",
       });
-    } catch (error) {
+      
+      // Refresh the statistics
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } catch (error: any) {
+      console.error('❌ Failed to create sample trips:', error);
       toast({
-        title: "Delete Failed", 
-        description: "Failed to delete the trip. Please try again.",
-        variant: "destructive",
+        title: "Error Creating Sample Trips",
+        description: error.message || "Failed to create sample trips.",
+        variant: "destructive"
       });
     }
   };
 
   if (!currentUser) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-xl font-semibold mb-4">Please sign in to view your profile</h2>
-          <Link href="/login">
-            <Button>Sign In</Button>
-          </Link>
-        </div>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardContent className="p-6 text-center">
+            <h2 className="text-xl font-semibold mb-2">Authentication Required</h2>
+            <p className="text-gray-600 mb-4">Please log in to view your profile.</p>
+            <Link href="/login">
+              <Button className="w-full">Go to Login</Button>
+            </Link>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-      {/* Header */}
-      <div className="bg-white/80 backdrop-blur-sm border-b border-gray-200/50">
-        <div className="max-w-4xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-4xl mx-auto">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-8">
             <div className="flex items-center space-x-4">
               <Link href="/dashboard">
-                <Button variant="ghost" size="sm" className="p-2">
-                  <ArrowLeft className="w-4 h-4" />
+                <Button variant="ghost" size="sm">
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Back to Dashboard
                 </Button>
               </Link>
-              <h1 className="text-2xl font-bold text-gray-900">My Profile</h1>
-            </div>
-            <div className="flex items-center space-x-2">
-              {!isEditing ? (
-                <Button onClick={handleEdit} variant="outline" size="sm">
-                  <Edit className="w-4 h-4 mr-2" />
-                  Edit Profile
-                </Button>
-              ) : (
-                <div className="flex space-x-2">
-                  <Button onClick={handleSave} size="sm">
-                    <Save className="w-4 h-4 mr-2" />
-                    Save
-                  </Button>
-                  <Button onClick={handleCancel} variant="outline" size="sm">
-                    <X className="w-4 h-4 mr-2" />
-                    Cancel
-                  </Button>
-                </div>
-              )}
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">Profile Settings</h1>
+                <p className="text-gray-600">Manage your account and preferences</p>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
-          {/* Profile Card */}
-          <div className="lg:col-span-1">
-            <Card className="bg-white/80 backdrop-blur-sm border-white/50 shadow-xl">
-              <CardHeader className="text-center">
-                <div className="w-24 h-24 mx-auto bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mb-4">
-                  {userProfile?.photoURL ? (
-                    <img 
-                      src={userProfile.photoURL} 
-                      alt="Profile" 
-                      className="w-full h-full rounded-full object-cover"
-                    />
-                  ) : (
-                    <User className="w-12 h-12 text-white" />
-                  )}
-                </div>
-                <CardTitle className="text-xl">
-                  {userProfile?.displayName || currentUser.displayName || "User"}
-                </CardTitle>
-                <CardDescription className="flex items-center justify-center space-x-1">
-                  <Mail className="w-4 h-4" />
-                  <span>{currentUser.email}</span>
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-center">
-                  <Badge variant="secondary" className="bg-green-100 text-green-800">
-                    <Shield className="w-3 h-3 mr-1" />
-                    Verified Account
-                  </Badge>
-                </div>
-                
-                {userProfile?.createdAt && (
-                  <div className="text-center text-sm text-gray-600">
-                    <Calendar className="w-4 h-4 inline mr-1" />
-                    Member since {new Date(userProfile.createdAt).toLocaleDateString()}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Profile Information */}
-          <div className="lg:col-span-2 space-y-6">
-            
-            {/* Travel Statistics */}
+          <div className="space-y-6">
+            {/* Your Journey */}
             <Card className="bg-white/80 backdrop-blur-sm border-white/50 shadow-xl">
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
-                  <Globe className="w-5 h-5" />
-                  <span>Travel Statistics</span>
+                  <Plane className="w-5 h-5 text-purple-600" />
+                  <span>Your Journey</span>
                 </CardTitle>
                 <CardDescription>
-                  Your travel journey at a glance.
+                  Track your travel progress and achievements.
+                  {currentUser && (
+                    <span className="text-xs text-gray-500 block mt-1">
+                      User ID: {currentUser.uid.slice(-8)} | Email: {currentUser.email}
+                    </span>
+                  )}
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="text-center p-4 bg-blue-50 rounded-lg">
-                    <div className="text-2xl font-bold text-blue-600">{trips.length}</div>
-                    <div className="text-sm text-gray-600">Total Trips</div>
+                {loadingStats ? (
+                  <div className="flex items-center justify-center py-4">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-600"></div>
+                    <span className="ml-2 text-gray-600">Loading your journey...</span>
                   </div>
-                  <div className="text-center p-4 bg-green-50 rounded-lg">
-                    <div className="text-2xl font-bold text-green-600">
-                      {trips.filter(trip => new Date(trip.endDate) < new Date()).length}
+                ) : (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg border border-blue-200">
+                        <div className="text-2xl font-bold text-blue-600">{journeyStats.tripsPlanned}</div>
+                        <div className="text-sm text-gray-600 mt-1">Trips Planned</div>
+                      </div>
+                      <div className="text-center p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-lg border border-green-200">
+                        <div className="text-2xl font-bold text-green-600">{journeyStats.destinationsExplored}</div>
+                        <div className="text-sm text-gray-600 mt-1">Destinations Explored</div>
+                      </div>
+                      <div className="text-center p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg border border-purple-200">
+                        <div className="flex items-center justify-center space-x-2">
+                          <TrendingUp className="w-5 h-5 text-purple-600" />
+                          <div>
+                            <div className={`text-sm font-medium ${
+                              journeyStats.profileStatus === 'Complete' ? 'text-green-600' : 'text-orange-600'
+                            }`}>
+                              {journeyStats.profileStatus}
+                            </div>
+                            <div className="text-xs text-gray-600">Profile Status</div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    <div className="text-sm text-gray-600">Completed</div>
-                  </div>
-                  <div className="text-center p-4 bg-purple-50 rounded-lg">
-                    <div className="text-2xl font-bold text-purple-600">
-                      {trips.filter(trip => new Date(trip.startDate) > new Date()).length}
-                    </div>
-                    <div className="text-sm text-gray-600">Upcoming</div>
-                  </div>
-                  <div className="text-center p-4 bg-orange-50 rounded-lg">
-                    <div className="text-2xl font-bold text-orange-600">
-                      {new Set(trips.map(trip => trip.destination)).size}
-                    </div>
-                    <div className="text-sm text-gray-600">Destinations</div>
-                  </div>
-                </div>
-                
-                {trips.length > 0 && (
-                  <div className="mt-6 pt-4 border-t border-gray-200">
-                    <h4 className="font-medium text-gray-900 mb-3">Favorite Destinations</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {Object.entries(
-                        trips.reduce((acc, trip) => {
-                          acc[trip.destination] = (acc[trip.destination] || 0) + 1;
-                          return acc;
-                        }, {} as Record<string, number>)
-                      )
-                      .sort(([,a], [,b]) => b - a)
-                      .slice(0, 5)
-                      .map(([destination, count]) => (
-                        <Badge key={destination} variant="outline" className="text-xs">
-                          {destination} {count > 1 && `(${count})`}
-                        </Badge>
-                      ))}
-                    </div>
+                    
+                    {/* Debug info and test button */}
+                    {journeyStats.tripsPlanned === 0 && (
+                      <div className="text-center py-4 bg-gray-50 rounded-lg border border-gray-200">
+                        <p className="text-sm text-gray-600 mb-3">
+                          No trips found. Create some sample trips to test the statistics.
+                        </p>
+                        <Button 
+                          onClick={createSampleTrips} 
+                          variant="outline" 
+                          size="sm"
+                          className="bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200"
+                        >
+                          Create Sample Trips (Debug)
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 )}
               </CardContent>
             </Card>
 
-            {/* Personal Information */}
+            {/* Profile Information */}
             <Card className="bg-white/80 backdrop-blur-sm border-white/50 shadow-xl">
               <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <User className="w-5 h-5" />
-                  <span>Personal Information</span>
-                </CardTitle>
-                <CardDescription>
-                  Your basic profile information and contact details.
-                </CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center space-x-2">
+                      <User className="w-5 h-5" />
+                      <span>Profile Information</span>
+                    </CardTitle>
+                    <CardDescription>
+                      Your personal information and contact details.
+                    </CardDescription>
+                  </div>
+                  {!isEditing ? (
+                    <Button onClick={handleEdit} variant="outline" size="sm">
+                      <Edit className="w-4 h-4 mr-2" />
+                      Edit
+                    </Button>
+                  ) : (
+                    <div className="flex space-x-2">
+                      <Button onClick={handleSave} size="sm">
+                        <Save className="w-4 h-4 mr-2" />
+                        Save
+                      </Button>
+                      <Button onClick={handleCancel} variant="outline" size="sm">
+                        <X className="w-4 h-4 mr-2" />
+                        Cancel
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </CardHeader>
-              <CardContent className="space-y-4">
-                
-                {/* Full Name */}
-                <div className="space-y-2">
-                  <Label htmlFor="displayName">Full Name</Label>
-                  {isEditing ? (
-                    <Input
-                      id="displayName"
-                      name="displayName"
-                      value={editData.displayName}
-                      onChange={handleChange}
-                      placeholder="Enter your full name"
-                    />
-                  ) : (
-                    <div className="text-gray-900 font-medium">
-                      {userProfile?.displayName || currentUser.displayName || "Not provided"}
-                    </div>
-                  )}
-                </div>
-
-                {/* Email (read-only) */}
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email Address</Label>
-                  <div className="flex items-center space-x-2 text-gray-600">
-                    <Mail className="w-4 h-4" />
-                    <span>{currentUser.email}</span>
-                    <Badge variant="outline" className="text-xs">Verified</Badge>
-                  </div>
-                </div>
-
-                {/* Phone Number */}
-                <div className="space-y-2">
-                  <Label htmlFor="phoneNumber">Phone Number</Label>
-                  {isEditing ? (
-                    <Input
-                      id="phoneNumber"
-                      name="phoneNumber"
-                      type="tel"
-                      value={editData.phoneNumber}
-                      onChange={handleChange}
-                      placeholder="Enter your phone number"
-                    />
-                  ) : (
-                    <div className="flex items-center space-x-2 text-gray-900">
-                      <Phone className="w-4 h-4 text-gray-400" />
-                      <span>{userProfile?.phoneNumber || "Not provided"}</span>
-                    </div>
-                  )}
-                </div>
-
-                <Separator />
-
-                {/* Location */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="city">City</Label>
-                    {isEditing ? (
-                      <Input
-                        id="city"
-                        name="city"
-                        value={editData.city}
-                        onChange={handleChange}
-                        placeholder="Your city"
+              <CardContent>
+                <div className="space-y-6">
+                  {/* Avatar and Basic Info */}
+                  <div className="flex items-center space-x-6">
+                    <Avatar className="w-20 h-20">
+                      <AvatarImage 
+                        src={currentUser.photoURL || ""} 
+                        alt={userProfile?.displayName || currentUser.displayName || "Profile"} 
                       />
-                    ) : (
-                      <div className="flex items-center space-x-2 text-gray-900">
-                        <MapPin className="w-4 h-4 text-gray-400" />
-                        <span>{userProfile?.city || "Not provided"}</span>
+                      <AvatarFallback className="text-lg">
+                        {(userProfile?.displayName || currentUser.displayName || currentUser.email || "U").charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="displayName">Display Name</Label>
+                          {isEditing ? (
+                            <Input
+                              id="displayName"
+                              value={editData.displayName}
+                              onChange={(e) => handleInputChange("displayName", e.target.value)}
+                              placeholder="Your display name"
+                            />
+                          ) : (
+                            <div className="flex items-center space-x-2 text-gray-900 mt-1">
+                              <User className="w-4 h-4 text-gray-400" />
+                              <span>{userProfile?.displayName || currentUser.displayName || "Not provided"}</span>
+                            </div>
+                          )}
+                        </div>
+                        <div>
+                          <Label htmlFor="email">Email Address</Label>
+                          <div className="flex items-center space-x-2 text-gray-900 mt-1">
+                            <Mail className="w-4 h-4 text-gray-400" />
+                            <span>{currentUser.email}</span>
+                            {currentUser.emailVerified && (
+                              <Badge variant="secondary" className="ml-2">Verified</Badge>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                    )}
+                    </div>
                   </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="country">Country</Label>
-                    {isEditing ? (
-                      <Input
-                        id="country"
-                        name="country"
-                        value={editData.country}
-                        onChange={handleChange}
-                        placeholder="Your country"
-                      />
-                    ) : (
-                      <div className="flex items-center space-x-2 text-gray-900">
-                        <Globe className="w-4 h-4 text-gray-400" />
-                        <span>{userProfile?.country || "Not provided"}</span>
+
+                  <Separator />
+
+                  {/* Contact Information */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <Label htmlFor="phone">Phone Number</Label>
+                      {isEditing ? (
+                        <Input
+                          id="phone"
+                          value={editData.phoneNumber}
+                          onChange={(e) => handleInputChange("phoneNumber", e.target.value)}
+                          placeholder="+91 9876543210"
+                        />
+                      ) : (
+                        <div className="flex items-center space-x-2 text-gray-900 mt-1">
+                          <Phone className="w-4 h-4 text-gray-400" />
+                          <span>{userProfile?.phoneNumber || "Not provided"}</span>
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <Label htmlFor="joinDate">Member Since</Label>
+                      <div className="flex items-center space-x-2 text-gray-900 mt-1">
+                        <Calendar className="w-4 h-4 text-gray-400" />
+                        <span>
+                          {currentUser.metadata?.creationTime 
+                            ? new Date(currentUser.metadata.creationTime).toLocaleDateString()
+                            : "Recently"
+                          }
+                        </span>
                       </div>
-                    )}
+                    </div>
+                  </div>
+
+                  {/* Location Information */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <Label htmlFor="city">City</Label>
+                      {isEditing ? (
+                        <Input
+                          id="city"
+                          value={editData.city}
+                          onChange={(e) => handleInputChange("city", e.target.value)}
+                          placeholder="Mumbai"
+                        />
+                      ) : (
+                        <div className="flex items-center space-x-2 text-gray-900 mt-1">
+                          <MapPin className="w-4 h-4 text-gray-400" />
+                          <span>{userProfile?.city || "Not provided"}</span>
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <Label htmlFor="country">Country</Label>
+                      {isEditing ? (
+                        <Input
+                          id="country"
+                          value={editData.country}
+                          onChange={(e) => handleInputChange("country", e.target.value)}
+                          placeholder="India"
+                        />
+                      ) : (
+                        <div className="flex items-center space-x-2 text-gray-900 mt-1">
+                          <Globe className="w-4 h-4 text-gray-400" />
+                          <span>{userProfile?.country || "Not provided"}</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -440,140 +564,6 @@ export default function Profile() {
               </CardContent>
             </Card>
 
-            {/* Planned Trips Section */}
-            <Card className="bg-white/80 backdrop-blur-sm border-white/50 shadow-xl">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Plane className="w-5 h-5" />
-                  <span>My Planned Trips</span>
-                </CardTitle>
-                <CardDescription>
-                  View and manage all your planned travel adventures.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {tripsLoading ? (
-                  <div className="text-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                    <p className="text-gray-600 mt-2">Loading your trips...</p>
-                  </div>
-                ) : trips.length === 0 ? (
-                  <div className="text-center py-8">
-                    <Plane className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-1">No trips planned yet</h3>
-                    <p className="text-gray-600 mb-4">Start planning your next adventure!</p>
-                    <Link href="/trip-wizard">
-                      <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
-                        Plan Your First Trip
-                      </Button>
-                    </Link>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {trips.map((trip) => (
-                      <div key={trip.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center space-x-2 mb-2">
-                              <h4 className="font-semibold text-lg text-gray-900">
-                                {trip.destination}
-                              </h4>
-                              <Badge 
-                                variant={
-                                  new Date(trip.startDate) > new Date() ? "default" : 
-                                  new Date(trip.endDate) < new Date() ? "secondary" : "destructive"
-                                }
-                              >
-                                {new Date(trip.startDate) > new Date() ? "Upcoming" : 
-                                 new Date(trip.endDate) < new Date() ? "Completed" : "Ongoing"}
-                              </Badge>
-                            </div>
-                            
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-600 mb-3">
-                              <div className="flex items-center space-x-1">
-                                <Calendar className="w-4 h-4" />
-                                <span>{new Date(trip.startDate).toLocaleDateString()}</span>
-                              </div>
-                              <div className="flex items-center space-x-1">
-                                <Clock className="w-4 h-4" />
-                                <span>
-                                  {Math.ceil((new Date(trip.endDate).getTime() - new Date(trip.startDate).getTime()) / (1000 * 60 * 60 * 24))} days
-                                </span>
-                              </div>
-                              <div className="flex items-center space-x-1">
-                                <User className="w-4 h-4" />
-                                <span>{trip.travelers} travelers</span>
-                              </div>
-                              <div className="flex items-center space-x-1">
-                                <span>₹{trip.budget?.toLocaleString() || 'N/A'}</span>
-                              </div>
-                            </div>
-
-                            {trip.title && trip.title !== trip.destination && (
-                              <p className="text-gray-700 text-sm mb-3 line-clamp-2">
-                                {trip.title}
-                              </p>
-                            )}
-
-                            <div className="flex flex-wrap gap-2">
-                              {trip.tripType && (
-                                <Badge variant="outline">{trip.tripType}</Badge>
-                              )}
-                              {trip.status && (
-                                <Badge variant="outline">{trip.status}</Badge>
-                              )}
-                              {trip.currency && (
-                                <Badge variant="outline">{trip.currency}</Badge>
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="flex items-center space-x-2 ml-4">
-                            {trip.id ? (
-                              <Link href={`/itinerary/${trip.id}`}>
-                                <Button variant="outline" size="sm">
-                                  <Eye className="w-4 h-4 mr-1" />
-                                  View
-                                </Button>
-                              </Link>
-                            ) : (
-                              <Button variant="outline" size="sm" disabled>
-                                <Eye className="w-4 h-4 mr-1" />
-                                View
-                              </Button>
-                            )}
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
-                              onClick={() => trip.id && handleDeleteTrip(trip.id)}
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                              disabled={!trip.id}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </div>
-
-                        {/* Trip Stats */}
-                        {trip.aiRecommendation && (
-                          <div className="mt-4 pt-3 border-t border-gray-100">
-                            <div className="flex items-center justify-between text-sm text-gray-600">
-                              <span>AI Recommendations Generated</span>
-                              <div className="flex items-center space-x-4">
-                                <span>{trip.aiRecommendation.hotels?.length || 0} Hotels</span>
-                                <span>{trip.aiRecommendation.attractions?.length || 0} Attractions</span>
-                                <span>{trip.aiRecommendation.restaurants?.length || 0} Restaurants</span>
-                                <span>{trip.aiRecommendation.itinerary?.length || 0} Days Planned</span>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
           </div>
         </div>
       </div>
