@@ -501,356 +501,7 @@ export default function Itinerary() {
           </Card>
         </div>
 
-        {/* AI Recommended Hotels - PDF Priority Section */}
-        {trip.aiRecommendation && trip.aiRecommendation.hotels && (
-          <div className="mb-8">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-2xl">
-                  🏨 AI Recommended Hotels
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid gap-6 md:grid-cols-2">
-                  {trip.aiRecommendation.hotels.map((hotel: any, index: number) => (
-                    <Card key={index} className="border border-gray-200 shadow-sm">
-                      <CardContent className="p-6">
-                        <h4 className="font-bold text-xl mb-3">{hotel.name}</h4>
-                        <div className="space-y-3 text-sm">
-                          <div className="flex items-center gap-2">
-                            <MapPin className="w-5 h-5 text-gray-500" />
-                            <span className="font-medium">{hotel.location}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-yellow-500 text-lg">⭐</span>
-                            <span className="font-medium">{hotel.rating}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <DollarSign className="w-5 h-5 text-green-500" />
-                            <span className="font-bold text-green-600">₹{hotel.pricePerNight}/night</span>
-                          </div>
-                          {hotel.amenities && Array.isArray(hotel.amenities) && (
-                            <div className="flex flex-wrap gap-2 mt-3">
-                              {hotel.amenities.slice(0, 6).map((amenity: string, i: number) => (
-                                <span key={i} className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
-                                  {amenity}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                          <p className="text-gray-700 mt-3 leading-relaxed">{hotel.description}</p>
-                          {hotel.aiInsight && (
-                            <div className="bg-blue-50 p-3 rounded-lg text-blue-800 text-sm mt-3">
-                              <span className="font-semibold">💡 AI Insight:</span> {hotel.aiInsight}
-                            </div>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {/* AI Recommended Attractions - PDF Priority Section */}
-        {trip.aiRecommendation && trip.aiRecommendation.attractions && (
-          <div className="mb-8">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-2xl">
-                  🎯 AI Recommended Attractions
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                  {trip.aiRecommendation.attractions.map((attraction: any, index: number) => (
-                    <Card key={index} className="border border-gray-200 shadow-sm">
-                      <CardContent className="p-5">
-                        <h4 className="font-bold text-lg mb-3">{attraction.title}</h4>
-                        <div className="space-y-2 text-sm">
-                          <div className="flex items-center gap-2">
-                            <MapPin className="w-4 h-4 text-gray-500" />
-                            <span className="font-medium">{attraction.location}</span>
-                          </div>
-                          {attraction.cost && (
-                            <div className="flex items-center gap-2">
-                              <DollarSign className="w-4 h-4 text-green-500" />
-                              <span className="font-bold text-green-600">₹{attraction.cost}</span>
-                            </div>
-                          )}
-                          {attraction.duration && (
-                            <div className="flex items-center gap-2 text-blue-600">
-                              <span>⏱️</span>
-                              <span className="font-medium">{attraction.duration} minutes</span>
-                            </div>
-                          )}
-                          {attraction.bestTime && (
-                            <div className="flex items-center gap-2 text-purple-600">
-                              <span>🕒</span>
-                              <span className="font-medium">Best time: {attraction.bestTime}</span>
-                            </div>
-                          )}
-                          <p className="text-gray-700 mt-3 leading-relaxed">{attraction.description}</p>
-                          {attraction.tips && (
-                            <div className="bg-yellow-50 p-3 rounded-lg text-yellow-800 text-sm mt-3">
-                              <span className="font-semibold">💡 Tips:</span> {attraction.tips}
-                            </div>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {/* AI Recommended Restaurants - PDF Priority Section */}
-        {trip.aiRecommendation && trip.aiRecommendation.restaurants && (
-          <div className="mb-8">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-2xl">
-                  🍽️ AI Recommended Restaurants
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                  {trip.aiRecommendation.restaurants.map((restaurant: any, index: number) => (
-                    <Card key={index} className="border border-gray-200 shadow-sm">
-                      <CardContent className="p-5">
-                        <h4 className="font-bold text-lg mb-3">{restaurant.name}</h4>
-                        <div className="space-y-2 text-sm">
-                          <div className="flex items-center gap-2">
-                            <MapPin className="w-4 h-4 text-gray-500" />
-                            <span className="font-medium">{restaurant.location}</span>
-                          </div>
-                          {restaurant.cuisine && (
-                            <div className="flex items-center gap-2">
-                              <span>🍴</span>
-                              <span className="font-medium">{restaurant.cuisine}</span>
-                            </div>
-                          )}
-                          {restaurant.priceRange && (
-                            <div className="flex items-center gap-2">
-                              <DollarSign className="w-4 h-4 text-green-500" />
-                              <span className="font-bold text-green-600">{restaurant.priceRange}</span>
-                            </div>
-                          )}
-                          {restaurant.rating && (
-                            <div className="flex items-center gap-2">
-                              <span className="text-yellow-500 text-lg">⭐</span>
-                              <span className="font-medium">{restaurant.rating}</span>
-                            </div>
-                          )}
-                          <p className="text-gray-700 mt-3 leading-relaxed">{restaurant.description}</p>
-                          {restaurant.specialties && Array.isArray(restaurant.specialties) && (
-                            <div className="flex flex-wrap gap-2 mt-3">
-                              {restaurant.specialties.slice(0, 4).map((specialty: string, i: number) => (
-                                <span key={i} className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-sm font-medium">
-                                  {specialty}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                          {restaurant.recommendation && (
-                            <div className="bg-green-50 p-3 rounded-lg text-green-800 text-sm mt-3">
-                              <span className="font-semibold">👨‍🍳 Chef's Pick:</span> {restaurant.recommendation}
-                            </div>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {/* Detailed Itinerary - PDF Priority Section */}
-        {trip.aiRecommendation && trip.aiRecommendation.itinerary && (
-          <div className="mb-8 print-page-break">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-2xl">
-                  📅 Detailed Itinerary
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-6">
-                  {trip.aiRecommendation.itinerary.map((day: any, index: number) => (
-                    <Card key={day.day || index} className="border-l-4 border-l-blue-500 shadow-sm">
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-xl flex items-center gap-2">
-                          <Calendar className="w-6 h-6 text-blue-500" />
-                          <div className="flex flex-col">
-                            <div className="flex items-center gap-2">
-                              <span className="text-blue-600 font-bold">Day {day.day}</span>
-                              {day.date && (
-                                <span className="text-sm bg-blue-100 text-blue-800 px-3 py-1 rounded-full font-medium">
-                                  {day.date}
-                                </span>
-                              )}
-                            </div>
-                            {(day.title || day.dayTitle) && (
-                              <span className="text-lg font-semibold text-gray-800 mt-1">
-                                {day.title || day.dayTitle}
-                              </span>
-                            )}
-                          </div>
-                        </CardTitle>
-                        {day.theme && (
-                          <p className="text-gray-600 ml-8">{day.theme}</p>
-                        )}
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-5">
-                          {/* Activities */}
-                          {day.activities && (
-                            <div>
-                              <h4 className="font-bold text-lg mb-3 text-gray-800">🎯 Activities:</h4>
-                              <div className="space-y-4">
-                                {day.activities.map((activity: any, actIndex: number) => (
-                                  <div key={actIndex} className="text-sm">
-                                    {typeof activity === 'string' ? (
-                                      <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                                        <span className="text-blue-500 mt-1 font-bold">•</span>
-                                        <span className="text-gray-700">{activity}</span>
-                                      </div>
-                                    ) : (
-                                      <div className="bg-blue-50 p-4 rounded-lg border-l-4 border-l-blue-600">
-                                        <div className="flex items-start justify-between mb-3">
-                                          <h5 className="font-bold text-gray-900 text-base">{activity.title}</h5>
-                                          {activity.startTime && activity.endTime && (
-                                            <span className="text-sm text-blue-700 bg-blue-200 px-3 py-1 rounded-full font-medium">
-                                              {activity.startTime} - {activity.endTime}
-                                            </span>
-                                          )}
-                                        </div>
-                                        {activity.description && (
-                                          <p className="text-gray-700 mb-3 leading-relaxed">{activity.description}</p>
-                                        )}
-                                        <div className="flex flex-wrap gap-4 text-sm text-gray-600">
-                                          {activity.location && (
-                                            <div className="flex items-center gap-1">
-                                              <MapPin className="w-4 h-4 text-red-500" />
-                                              <span className="font-medium">{activity.location}</span>
-                                            </div>
-                                          )}
-                                          {activity.duration && (
-                                            <div className="flex items-center gap-1">
-                                              <span className="text-purple-600">⏱️</span>
-                                              <span className="font-medium">{activity.duration} min</span>
-                                            </div>
-                                          )}
-                                          {activity.cost && activity.cost !== '0' && (
-                                            <div className="flex items-center gap-1">
-                                              <DollarSign className="w-4 h-4 text-green-500" />
-                                              <span className="text-green-600 font-bold">₹{activity.cost}</span>
-                                            </div>
-                                          )}
-                                        </div>
-                                        {activity.notes && (
-                                          <div className="mt-3 text-sm text-blue-800 bg-blue-100 p-3 rounded-lg">
-                                            <span className="font-semibold">💡 Pro Tip:</span> {activity.notes}
-                                          </div>
-                                        )}
-                                      </div>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                          
-                          {/* Meals */}
-                          {day.meals && (
-                            <div>
-                              <h4 className="font-bold text-lg mb-3 text-gray-800">🍽️ Meals:</h4>
-                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                {day.meals.breakfast && (
-                                  <div className="bg-yellow-50 p-3 rounded-lg">
-                                    <div className="font-semibold text-yellow-800">🌅 Breakfast:</div>
-                                    <div className="text-gray-700">{day.meals.breakfast}</div>
-                                  </div>
-                                )}
-                                {day.meals.lunch && (
-                                  <div className="bg-orange-50 p-3 rounded-lg">
-                                    <div className="font-semibold text-orange-800">☀️ Lunch:</div>
-                                    <div className="text-gray-700">{day.meals.lunch}</div>
-                                  </div>
-                                )}
-                                {day.meals.dinner && (
-                                  <div className="bg-purple-50 p-3 rounded-lg">
-                                    <div className="font-semibold text-purple-800">🌙 Dinner:</div>
-                                    <div className="text-gray-700">{day.meals.dinner}</div>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          )}
-                          
-                          {/* Day Cost */}
-                          {day.totalCost && (
-                            <div className="bg-green-50 p-3 rounded-lg">
-                              <div className="font-bold text-green-800 text-base">
-                                💰 Daily Budget: {day.totalCost}
-                              </div>
-                            </div>
-                          )}
-                          
-                          {/* Tips */}
-                          {day.tips && (
-                            <div className="bg-yellow-50 p-4 rounded-lg border-l-4 border-l-yellow-400">
-                              <h4 className="font-bold text-yellow-800 mb-2">💡 Insider Tips:</h4>
-                              <p className="text-yellow-700 leading-relaxed">{day.tips}</p>
-                            </div>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                  
-                  {/* Trip Summary */}
-                  {trip.aiRecommendation.summary && (
-                    <Card className="bg-gradient-to-r from-green-50 to-blue-50 border-2 border-green-200 mt-6">
-                      <CardHeader>
-                        <CardTitle className="text-green-700 text-xl">🎯 Trip Summary</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-gray-700 mb-4 text-base leading-relaxed">{trip.aiRecommendation.summary.description}</p>
-                        {trip.aiRecommendation.summary.highlights && (
-                          <div className="mb-4">
-                            <h4 className="font-bold mb-3 text-gray-800">✨ Trip Highlights:</h4>
-                            <div className="grid gap-2">
-                              {trip.aiRecommendation.summary.highlights.map((highlight: string, index: number) => (
-                                <div key={index} className="text-gray-700 flex items-start gap-2 p-2 bg-white rounded">
-                                  <span className="text-green-500 mt-1">✨</span>
-                                  <span>{highlight}</span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                        {trip.aiRecommendation.summary.totalCost && (
-                          <div className="bg-green-100 p-4 rounded-lg">
-                            <div className="text-xl font-bold text-green-700">
-                              💰 Total Estimated Cost: {trip.aiRecommendation.summary.totalCost}
-                            </div>
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
+        
 
         {/* Trip Planning Details */}
         <Card className="print-page-break">
@@ -872,7 +523,7 @@ export default function Itinerary() {
                     <Card className="print-hidden">
                       <CardHeader>
                         <CardTitle className="flex items-center gap-2">
-                          🏨 AI Recommended Hotels
+                          🏨 Recommended Hotels
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
@@ -904,11 +555,7 @@ export default function Itinerary() {
                                     </div>
                                   )}
                                   <p className="text-gray-600 mt-2">{hotel.description}</p>
-                                  {hotel.aiInsight && (
-                                    <div className="bg-blue-50 p-2 rounded text-blue-800 text-xs mt-2">
-                                      💡 {hotel.aiInsight}
-                                    </div>
-                                  )}
+                                  {/* AI insight removed - showing only core hotel info */}
                                 </div>
                               </CardContent>
                             </Card>
@@ -923,7 +570,7 @@ export default function Itinerary() {
                     <Card className="print-hidden">
                       <CardHeader>
                         <CardTitle className="flex items-center gap-2">
-                          🎯 AI Recommended Attractions
+                          🎯 Recommended Attractions
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
@@ -954,11 +601,7 @@ export default function Itinerary() {
                                     </div>
                                   )}
                                   <p className="text-gray-600 mt-2">{attraction.description}</p>
-                                  {attraction.tips && (
-                                    <div className="bg-yellow-50 p-2 rounded text-yellow-800 text-xs mt-2">
-                                      💡 {attraction.tips}
-                                    </div>
-                                  )}
+                                  {/* Tips removed - displaying core attraction info only */}
                                 </div>
                               </CardContent>
                             </Card>
@@ -973,7 +616,7 @@ export default function Itinerary() {
                     <Card className="print-hidden">
                       <CardHeader>
                         <CardTitle className="flex items-center gap-2">
-                          🍽️ AI Recommended Restaurants
+                          🍽️ Recommended Restaurants
                         </CardTitle>
                       </CardHeader>
                       <CardContent>

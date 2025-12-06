@@ -16,7 +16,7 @@ export default function HotelPreviewSection() {
         <div className="travel-container">
           <div className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
-              AI-Powered Hotel Recommendations
+              Hotel Recommendations
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
               Experience the future of hotel discovery
@@ -38,10 +38,10 @@ export default function HotelPreviewSection() {
       <div className="travel-container">
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
-            AI-Powered Hotel Recommendations
+            Hotel Recommendations
           </h2>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8">
-            See how our intelligent system finds your perfect accommodation
+            See curated hotel options tailored to your preferences
           </p>
           
           {/* How it works badges */}
@@ -77,7 +77,7 @@ export default function HotelPreviewSection() {
                     <div className="absolute inset-0 bg-black/30"></div>
                     <div className="absolute top-4 left-4">
                       <Badge className="bg-green-500 text-white font-semibold">
-                        AI Recommended
+                        Recommended
                       </Badge>
                     </div>
                     <div className="absolute bottom-4 left-4 right-4">
@@ -109,18 +109,7 @@ export default function HotelPreviewSection() {
                       {featuredHotel.description}
                     </p>
 
-                    {/* AI Insight */}
-                    {featuredHotel.aiInsight && (
-                      <div className="bg-blue-50 rounded-lg p-4 mb-4 border-l-4 border-blue-400">
-                        <div className="flex items-start gap-3">
-                          <Sparkles className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
-                          <div>
-                            <h5 className="font-semibold text-blue-900 mb-1">AI Insight</h5>
-                            <p className="text-blue-800 text-sm">{featuredHotel.aiInsight}</p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
+                    {/* AI insight removed for non-AI presentation */}
 
                     {/* Amenities */}
                     {featuredHotel.amenities && Array.isArray(featuredHotel.amenities) && featuredHotel.amenities.length > 0 ? (
@@ -148,8 +137,8 @@ export default function HotelPreviewSection() {
                 <h3 className="text-3xl font-bold text-gray-900 mb-4">
                   Want More Personalized Recommendations?
                 </h3>
-                <p className="text-lg text-gray-600 mb-8">
-                  This is just one example! Our AI analyzes your preferences, budget, and travel style to find hotels that perfectly match your needs. Get instant recommendations for any destination worldwide.
+                    <p className="text-lg text-gray-600 mb-8">
+                  This is just one example! Our system analyzes your preferences, budget, and travel style to find hotels that match your needs. Get instant recommendations for any destination worldwide.
                 </p>
                 
                 <div className="grid gap-6 mb-8">
