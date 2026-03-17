@@ -429,10 +429,16 @@ export default function TripWizardForm() {
                               value={selectedStartCity}
                               onChange={(city) => {
                                 setSelectedStartCity(city);
-                                field.onChange(city ? `${city.name}, ${city.state}` : "");
+                                if (city) {
+                                  const locationString = `${city.name}, ${city.state}`;
+                                  field.onChange(locationString);
+                                } else {
+                                  field.onChange("");
+                                }
                               }}
                             />
                           </FormControl>
+                          {field.value && <span className="text-xs text-gray-500 mt-1">Selected: {field.value}</span>}
                           <FormMessage />
                         </FormItem>
                       )}
@@ -455,10 +461,16 @@ export default function TripWizardForm() {
                             value={selectedDestinationCity}
                             onChange={(city) => {
                               setSelectedDestinationCity(city);
-                              field.onChange(city ? `${city.name}, ${city.state}` : "");
+                              if (city) {
+                                const locationString = `${city.name}, ${city.state}`;
+                                field.onChange(locationString);
+                              } else {
+                                field.onChange("");
+                              }
                             }}
                           />
                         </FormControl>
+                        {field.value && <span className="text-xs text-gray-500 mt-1">Selected: {field.value}</span>}
                         <FormMessage />
                       </FormItem>
                     )}
@@ -477,7 +489,8 @@ export default function TripWizardForm() {
                           <FormControl>
                             <Input
                               type="date"
-                              {...field}
+                              value={field.value || ""}
+                              onChange={(e) => field.onChange(e.target.value)}
                               className="border-orange-200 focus:border-orange-400"
                             />
                           </FormControl>
@@ -498,7 +511,8 @@ export default function TripWizardForm() {
                           <FormControl>
                             <Input
                               type="date"
-                              {...field}
+                              value={field.value || ""}
+                              onChange={(e) => field.onChange(e.target.value)}
                               className="border-orange-200 focus:border-orange-400"
                             />
                           </FormControl>
