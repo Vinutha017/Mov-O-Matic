@@ -28,16 +28,17 @@ export default defineConfig({
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
     rollupOptions: {
-  output: {
-    manualChunks(id) {
-      if (id.includes("node_modules")) {
-        if (id.includes("react")) return "vendor";
-        if (id.includes("firebase")) return "firebase";
-        if (id.includes("lucide-react") || id.includes("@radix-ui")) return "ui";
+      output: {
+        manualChunks(id) {
+          if (id.includes("node_modules")) {
+            if (id.includes("react")) return "vendor";
+            if (id.includes("firebase")) return "firebase";
+            if (id.includes("lucide-react") || id.includes("@radix-ui")) return "ui";
+          }
+        }
       }
     }
-  }
-}
+  },
   server: {
     fs: {
       strict: true,
