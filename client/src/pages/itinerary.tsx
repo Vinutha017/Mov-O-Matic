@@ -566,46 +566,67 @@ export default function Itinerary() {
                   )}
 
                   {/* AI Generated Attractions */}
-                  {trip.aiRecommendation && trip.aiRecommendation.attractions && (
+                  {trip.aiRecommendation && trip.aiRecommendation.itinerary && trip.aiRecommendation.itinerary.length > 0 && (
                     <Card className="print-hidden">
                       <CardHeader>
                         <CardTitle className="flex items-center gap-2">
-                          🎯 Recommended Attractions
+                          🎯 Day Highlights
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
                         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                          {trip.aiRecommendation.attractions.map((attraction: any, index: number) => (
-                            <Card key={index} className="border border-gray-200">
-                              <CardContent className="p-4">
-                                <h4 className="font-semibold mb-2">{attraction.title}</h4>
-                                <div className="space-y-1 text-sm">
-                                  <div className="flex items-center gap-2">
-                                    <MapPin className="w-4 h-4 text-gray-500" />
-                                    <span>{attraction.location}</span>
+                          {trip.aiRecommendation.itinerary.map((day: any, index: number) => {
+                            const dayActivities = Array.isArray(day.activities) ? day.activities : [];
+                            const highlights = dayActivities
+                              .filter((activity: any) => typeof activity !== 'string')
+                              .filter((activity: any) => {
+                                const category = String(activity.category || '').toLowerCase();
+                                return !['restaurant', 'hotel', 'transport'].includes(category);
+                              })
+                              .slice(0, 3);
+
+                            return (
+                              <Card key={day.day || index} className="border border-gray-200">
+                                <CardContent className="p-4">
+                                  <div className="flex items-center justify-between mb-3">
+                                    <h4 className="font-semibold">Day {day.day}</h4>
+                                    {(day.title || day.dayTitle) && (
+                                      <span className="text-xs px-2 py-1 rounded-full bg-blue-50 text-blue-700">
+                                        {day.title || day.dayTitle}
+                                      </span>
+                                    )}
                                   </div>
-                                  {attraction.cost && (
-                                    <div className="flex items-center gap-2">
-                                      <DollarSign className="w-4 h-4 text-green-500" />
-                                      <span>₹{attraction.cost}</span>
-                                    </div>
-                                  )}
-                                  {attraction.duration && (
-                                    <div className="text-gray-500">
-                                      ⏱️ {attraction.duration} minutes
-                                    </div>
-                                  )}
-                                  {attraction.bestTime && (
-                                    <div className="text-blue-600">
-                                      🕒 Best time: {attraction.bestTime}
-                                    </div>
-                                  )}
-                                  <p className="text-gray-600 mt-2">{attraction.description}</p>
-                                  {/* Tips removed - displaying core attraction info only */}
-                                </div>
-                              </CardContent>
-                            </Card>
-                          ))}
+
+                                  <div className="space-y-3 text-sm">
+                                    {highlights.length > 0 ? (
+                                      highlights.map((activity: any, activityIndex: number) => (
+                                        <div key={activity.id || activityIndex} className="rounded-lg bg-gray-50 p-3 border border-gray-100">
+                                          <div className="font-medium text-gray-900 mb-1">{activity.title}</div>
+                                          <div className="flex items-center gap-2 text-gray-600">
+                                            <MapPin className="w-4 h-4 text-gray-500" />
+                                            <span>{activity.location}</span>
+                                          </div>
+                                          {activity.cost && (
+                                            <div className="flex items-center gap-2 mt-1">
+                                              <DollarSign className="w-4 h-4 text-green-500" />
+                                              <span>₹{activity.cost}</span>
+                                            </div>
+                                          )}
+                                          {activity.duration && (
+                                            <div className="text-gray-500 mt-1">
+                                              ⏱️ {activity.duration} minutes
+                                            </div>
+                                          )}
+                                        </div>
+                                      ))
+                                    ) : (
+                                      <div className="text-gray-500">No attraction highlights found for this day.</div>
+                                    )}
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            );
+                          })}
                         </div>
                       </CardContent>
                     </Card>

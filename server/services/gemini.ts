@@ -903,6 +903,67 @@ Important: Return ONLY the JSON with exactly ${actualDuration} day objects, no o
   private generateMockItinerary(request: AITripRequest, duration: number): AIRecommendation {
     console.warn("⚠️ Returning mock itinerary due to AI error or rate limit or misconfiguration");
 
+    const destination = request.destination || "your destination";
+    const destinationKey = destination.toLowerCase();
+    const interests = request.interests || ["sightseeing"];
+
+    const cityActivityPools: Record<string, Array<{
+      title: string;
+      description: string;
+      location: string;
+      category: string;
+      tips: string;
+    }>> = {
+      mumbai: [
+        { title: "Gateway of India & Colaba Walk", description: "Start with the city's iconic waterfront and heritage streets.", location: "Colaba", category: "attraction", tips: "Go early to avoid crowds." },
+        { title: "Marine Drive Sunset", description: "Catch the Queen's Necklace glow at golden hour.", location: "Marine Drive", category: "attraction", tips: "Best after 5 PM for sunset views." },
+        { title: "Kala Ghoda Art Precinct", description: "Explore galleries, street art, and creative cafés.", location: "Kala Ghoda", category: "culture", tips: "Great for art and photography lovers." },
+        { title: "Street Food Trail", description: "Taste vada pav, pav bhaji, and local snacks.", location: "Mohammed Ali Road / Fort", category: "restaurant", tips: "Choose stalls with high turnover for freshness." },
+        { title: "Elephanta Island Excursion", description: "A half-day heritage trip to rock-cut caves and sea views.", location: "Elephanta Island", category: "attraction", tips: "Plan around ferry timings." }
+      ],
+      bengaluru: [
+        { title: "Lalbagh Botanical Garden", description: "A relaxed green start with historic gardens and quiet paths.", location: "Lalbagh", category: "attraction", tips: "Mornings are best for cooler weather." },
+        { title: "Cubbon Park Heritage Loop", description: "Walk through tree-lined avenues and nearby civic landmarks.", location: "Cubbon Park", category: "attraction", tips: "Pair it with a museum visit." },
+        { title: "MTR / Local South Indian Breakfast", description: "Enjoy a classic Bengaluru breakfast experience.", location: "Basavanagudi", category: "restaurant", tips: "Expect queues during peak hours." },
+        { title: "Bangalore Palace & Palace Grounds", description: "Visit royal interiors and learn about the city's history.", location: "Palace Road", category: "culture", tips: "Arrive before noon for better light." },
+        { title: "Indiranagar Café Hop", description: "End the day with a modern café and dining trail.", location: "Indiranagar", category: "restaurant", tips: "Reserve if you're going on weekends." }
+      ],
+      chikkamagaluru: [
+        { title: "Coffee Estate Tour", description: "Walk through aromatic plantations and learn about coffee processing.", location: "Coffee Estates", category: "attraction", tips: "Morning slots are cooler and more scenic." },
+        { title: "Mullayanagiri Viewpoint", description: "Take in sweeping hill views and cool mountain air.", location: "Mullayanagiri", category: "attraction", tips: "Carry a light jacket and water." },
+        { title: "Baba Budangiri Scenic Drive", description: "Enjoy winding roads, viewpoints, and Himalayan-style hills.", location: "Baba Budangiri", category: "attraction", tips: "Plan with a local driver for safety." },
+        { title: "Local Filter Coffee Stop", description: "Try fresh filter coffee and Karnataka-style snacks.", location: "Town Center", category: "restaurant", tips: "Best after a morning trek." },
+        { title: "Hebbe / Jhari Falls Visit", description: "Spend time at a waterfall surrounded by greenery.", location: "Western Ghats", category: "attraction", tips: "Check accessibility and road conditions." }
+      ],
+      goa: [
+        { title: "Beach Morning at Calangute / Baga", description: "Ease into the trip with sea breeze and soft sand.", location: "North Goa", category: "attraction", tips: "Morning is best for a calmer beach." },
+        { title: "Old Goa Heritage Trail", description: "Explore churches and colonial-era history.", location: "Old Goa", category: "culture", tips: "Great for history and architecture fans." },
+        { title: "Spice Plantation Visit", description: "Learn about tropical spices and local farm life.", location: "Ponda", category: "attraction", tips: "Combine with a late lunch nearby." },
+        { title: "Seafood Lunch by the Beach", description: "Enjoy fresh Goan flavors with ocean views.", location: "Beach Belt", category: "restaurant", tips: "Ask for the catch of the day." },
+        { title: "Sunset Cruise / Night Market", description: "Finish with a sunset cruise or lively market stroll.", location: "Mandovi / Anjuna", category: "attraction", tips: "Book cruises in advance." }
+      ],
+      default: [
+        { title: "City Orientation Walk", description: `A relaxed first look at ${destination} and its main landmarks.`, location: `${destination} Center`, category: "attraction", tips: "Start early to avoid heat and crowds." },
+        { title: "Local Culture Stop", description: `Discover a cultural site or museum connected to ${destination}.`, location: `${destination} Heritage District`, category: "culture", tips: "Check opening hours before you go." },
+        { title: "Signature Food Experience", description: `Taste popular local dishes unique to ${destination}.`, location: `${destination} Food Street`, category: "restaurant", tips: "Choose busy places for fresher food." },
+        { title: "Scenic Afternoon Visit", description: `Visit a scenic spot or neighborhood that matches your interests: ${interests.join(", ")}.`, location: `${destination} Scenic Area`, category: "attraction", tips: "Best in late afternoon for softer light." },
+        { title: "Evening Leisure Plan", description: `Wrap up with a relaxed evening plan in ${destination}.`, location: `${destination} Downtown`, category: "attraction", tips: "Keep the final activity flexible." }
+      ]
+    };
+
+    const selectedPool = cityActivityPools[destinationKey as keyof typeof cityActivityPools] || cityActivityPools.default;
+    const dayThemes = [
+      "Arrival & Orientation",
+      "Culture & Heritage",
+      "Nature & Scenic Views",
+      "Food & Local Experiences",
+      "Adventure & Exploration",
+      "Relaxed Leisure Day",
+      "Shopping & Farewell"
+    ];
+
+    const toMoney = (value: number) => Math.max(0, Math.round(value));
+
     const hotels = [
       {
         id: "mock-hotel-1",
@@ -938,14 +999,14 @@ Important: Return ONLY the JSON with exactly ${actualDuration} day objects, no o
 
     const restaurants = Array.from({ length: Math.min(3, duration + 1) }, (_, i) => ({
       id: `mock-rest-${i + 1}`,
-      title: `Local Favorite ${i + 1}`,
-      description: `Popular local place serving authentic cuisine in ${request.destination || 'the area'}`,
-      location: `${request.destination || 'City'} - Food Quarter`,
+      title: `${dayThemes[i % dayThemes.length]} Dining Spot`,
+      description: `Popular local place serving authentic cuisine in ${destination}`,
+      location: `${destination} - Food Quarter`,
       address: null,
       coordinates: null,
       startTime: "12:30",
       endTime: "14:00",
-      cost: Math.round(((request.budget || 5000) * 0.05)),
+      cost: String(toMoney((request.budget || 5000) * 0.05)),
       duration: 60,
       category: "restaurant",
       priority: 1,
@@ -957,58 +1018,62 @@ Important: Return ONLY the JSON with exactly ${actualDuration} day objects, no o
 
     const itinerary = Array.from({ length: duration }, (_, i) => {
       const day = i + 1;
+      const dayTheme = dayThemes[(day - 1) % dayThemes.length];
+      const baseIndex = (day - 1) % selectedPool.length;
+      const dayActivities = Array.from({ length: 3 }, (_, index) => selectedPool[(baseIndex + index) % selectedPool.length]);
+
       const activities = [
         {
           id: `mock-activity-${day}-1`,
-          title: `Morning Exploration - Day ${day}`,
-          description: `Light morning walk and sightseeing in ${request.destination || 'the city'}`,
-          location: `${request.destination || 'City'} Center`,
+          title: `${dayTheme} Start`,
+          description: dayActivities[0].description,
+          location: dayActivities[0].location,
           address: null,
           coordinates: null,
           startTime: "08:00",
           endTime: "10:00",
-          cost: Math.round(((request.budget || 5000) * 0.05)),
+          cost: String(toMoney((request.budget || 5000) * 0.05 + day * 20)),
           duration: 120,
-          category: "attraction",
+          category: dayActivities[0].category,
           priority: 1,
           bookingUrl: null,
-          notes: "Comfortable shoes recommended",
+          notes: dayActivities[0].tips,
           sortOrder: 0,
           dayId: ""
         },
         {
           id: `mock-activity-${day}-2`,
-          title: `Cultural Experience - Day ${day}`,
-          description: `Visit a local museum or cultural site`,
-          location: `${request.destination || 'City'} Cultural District`,
+          title: `${dayTheme} Main Experience`,
+          description: dayActivities[1].description,
+          location: dayActivities[1].location,
           address: null,
           coordinates: null,
           startTime: "11:00",
           endTime: "13:00",
-          cost: Math.round(((request.budget || 5000) * 0.08)),
+          cost: String(toMoney((request.budget || 5000) * 0.08 + day * 25)),
           duration: 120,
-          category: "culture",
+          category: dayActivities[1].category,
           priority: 1,
           bookingUrl: null,
-          notes: "Check opening hours in advance",
+          notes: dayActivities[1].tips,
           sortOrder: 1,
           dayId: ""
         },
         {
           id: `mock-activity-${day}-3`,
-          title: `Local Dining - Day ${day}`,
-          description: `Enjoy a meal at a recommended local restaurant`,
-          location: `${request.destination || 'City'} Dining Area`,
+          title: `${dayTheme} Evening`,
+          description: dayActivities[2].description,
+          location: dayActivities[2].location,
           address: null,
           coordinates: null,
           startTime: "19:00",
           endTime: "21:00",
-          cost: Math.round(((request.budget || 5000) * 0.06)),
+          cost: String(toMoney((request.budget || 5000) * 0.06 + day * 15)),
           duration: 120,
-          category: "restaurant",
+          category: dayActivities[2].category,
           priority: 1,
           bookingUrl: null,
-          notes: "Book a table for dinner",
+          notes: dayActivities[2].tips,
           sortOrder: 2,
           dayId: ""
         }
@@ -1019,11 +1084,14 @@ Important: Return ONLY the JSON with exactly ${actualDuration} day objects, no o
       return {
         day,
         date: new Date(Date.now() + i * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
-        dayTitle: `Day ${day} in ${request.destination || 'your destination'}`,
+        dayTitle: `${dayTheme} - Day ${day} in ${destination}`,
         activities,
         dailyCost,
-        transportationCost: Math.round(((request.budget || 5000) * 0.02)),
-        dailyTips: ["Stay hydrated", "Keep local cash handy"],
+        transportationCost: toMoney((request.budget || 5000) * 0.02 + day * 10),
+        dailyTips: [
+          `Focus on ${interests.slice(0, 2).join(' and ') || 'sightseeing'} today.`,
+          day === 1 ? 'Keep the first day light and flexible.' : 'Balance travel time with rest breaks.'
+        ],
         emergencyInfo: "Local emergency number: 112"
       } as any; // keep wide shape to match UI expectations
     });

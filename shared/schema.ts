@@ -199,9 +199,7 @@ export interface AITripRequest {
   foodPreferences?: string[];
   activityTypes?: string[];
   tripTheme?: string;
-  interests?: string[];
   transportPreferences?: string[];
-  travelStyle?: string;
   accommodationAmenities?: string[];
   mobilityRequirements?: string;
   specialRequirements?: string;

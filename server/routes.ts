@@ -1,8 +1,24 @@
 import type { Express } from "express";
+import { readFile } from "fs/promises";
+import path from "path";
 import { storage } from "./storage";
 import { aiTravelPlanner } from "./services/gemini";
 import { insertTripSchema, insertItineraryDaySchema, insertActivitySchema, insertExpenseSchema, type AITripRequest } from "@shared/schema";
 import { z } from "zod";
+
+type CityEntry = { name: string; state: string };
+
+async function loadFallbackCities(): Promise<CityEntry[]> {
+  try {
+    const filePath = path.join(process.cwd(), "public", "indianCities.json");
+    const raw = await readFile(filePath, "utf-8");
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (error) {
+    console.warn("Unable to load fallback cities:", error);
+    return [];
+  }
+}
 
 export async function registerRoutes(app: Express): Promise<void> {
   // Trip creation and AI planning
@@ -261,6 +277,64 @@ export async function registerRoutes(app: Express): Promise<void> {
     } catch (error) {
       console.error("AI sentiment analysis error:", error);
       res.status(500).json({ message: "Failed to analyze sentiment" });
+    }
+  });
+
+  // Places autocomplete proxy (keeps API key secret)
+  app.get('/api/places/autocomplete', async (req, res) => {
+    try {
+      const input = req.query.input as string | undefined;
+      if (!input || !input.trim()) return res.status(400).json({ predictions: [] });
+
+      const mapsKey = process.env.GOOGLE_MAPS_API_KEY || process.env.VITE_GOOGLE_MAPS_API_KEY;
+      if (!mapsKey) return res.status(500).json({ message: 'Google Maps API key not configured on server' });
+
+      const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(input)}&components=country:in&key=${mapsKey}`;
+      const r = await fetch(url);
+      const json = await r.json();
+
+      if (json?.status === 'REQUEST_DENIED' || !Array.isArray(json?.predictions) || json.predictions.length === 0) {
+        const cities = await loadFallbackCities();
+        const query = input.toLowerCase().trim();
+        const fallbackPredictions = cities
+          .filter((city) => `${city.name}, ${city.state}`.toLowerCase().includes(query) || city.name.toLowerCase().includes(query))
+          .slice(0, 12)
+          .map((city, index) => ({
+            description: `${city.name}, ${city.state}`,
+            place_id: `fallback-${index}-${city.name.toLowerCase().replace(/\s+/g, '-')}`,
+          }));
+
+        return res.json({
+          status: 'OK',
+          predictions: fallbackPredictions,
+          source: 'fallback-cities',
+        });
+      }
+
+      // Forward the Google response (predictions array)
+      return res.json(json);
+    } catch (error) {
+      console.error('Places autocomplete error:', error);
+      res.status(500).json({ message: 'Failed to get place predictions' });
+    }
+  });
+
+  // Place details proxy (optional)
+  app.get('/api/places/details', async (req, res) => {
+    try {
+      const placeId = req.query.placeId as string | undefined;
+      if (!placeId) return res.status(400).json({ result: null });
+
+      const mapsKey = process.env.GOOGLE_MAPS_API_KEY || process.env.VITE_GOOGLE_MAPS_API_KEY;
+      if (!mapsKey) return res.status(500).json({ message: 'Google Maps API key not configured on server' });
+
+      const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${encodeURIComponent(placeId)}&fields=place_id,name,formatted_address,geometry,address_components&key=${mapsKey}`;
+      const r = await fetch(url);
+      const json = await r.json();
+      return res.json(json);
+    } catch (error) {
+      console.error('Place details error:', error);
+      res.status(500).json({ message: 'Failed to get place details' });
     }
   });
 

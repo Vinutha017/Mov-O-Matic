@@ -5,10 +5,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
 // Interface for Indian city data structure
-interface City {
-  name: string;
-  state: string;
-}
+import { indianCities, City as CityType } from '@/lib/indianCities';
+
+type City = CityType;
 
 // Props interface for the CityAutocomplete component
 interface CityAutocompleteProps {
@@ -65,30 +64,18 @@ const CityAutocomplete: React.FC<CityAutocompleteProps> = ({
    * Load cities data from local JSON file
    */
   useEffect(() => {
-    const loadCities = async () => {
-      try {
-        setIsLoading(true);
-        const response = await fetch('/indianCities.json');
-        if (!response.ok) {
-          throw new Error('Failed to load cities data');
-        }
-        const citiesData: City[] = await response.json();
-        setCities(citiesData);
-        
-        // Initialize Fuse.js with cities data
-        fuseRef.current = new Fuse(citiesData, fuseOptions);
-        
-        console.log(`Loaded ${citiesData.length} cities for autocomplete`);
-      } catch (error) {
-        console.error('Error loading cities:', error);
-        // Fallback to empty array if loading fails
-        setCities([]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadCities();
+    // Use the bundled city list to avoid runtime fetch issues in dev/prod.
+    setIsLoading(true);
+    try {
+      setCities(indianCities as City[]);
+      fuseRef.current = new Fuse(indianCities as City[], fuseOptions);
+      console.log(`Loaded ${indianCities.length} cities for autocomplete (bundled)`);
+    } catch (error) {
+      console.error('Error initializing cities:', error);
+      setCities([]);
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
   /**

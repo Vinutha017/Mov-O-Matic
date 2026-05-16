@@ -20,6 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 import { createTrip, type Trip } from "@/lib/firebaseService";
 import { useAuth } from "@/contexts/AuthContext";
 import CityAutocomplete from "@/components/CityAutocomplete";
+import PlacesAutocomplete from "@/components/PlacesAutocomplete";
 import { 
   Sparkles, 
   MapPin, 
@@ -76,14 +77,12 @@ const tripFormSchema = z.object({
 
   // Trip Theme
   tripTheme: z.string().min(1, "Trip theme is required"),
-  interests: z.array(z.string()).min(1, "At least one interest is required"),
 
   // Transport & Mobility
   transportPreferences: z.array(z.string()).min(1, "At least one transport preference is required"),
   mobilityRequirements: z.string().optional(),
 
   // Personalization
-  travelStyle: z.string().min(1, "Travel style is required"),
   accommodationAmenities: z.array(z.string()).optional(),
   
   // Confirmation
@@ -146,10 +145,8 @@ export default function TripWizardForm() {
       foodPreferences: [],
       activityTypes: [],
       tripTheme: "",
-      interests: [],
       transportPreferences: [],
       mobilityRequirements: "",
-      travelStyle: "",
       accommodationAmenities: [],
       specialRequirements: "",
     },
@@ -160,9 +157,9 @@ export default function TripWizardForm() {
     { title: "Budget Preferences", icon: <DollarSign className="w-5 h-5" />, requiredFields: ["overallBudget"] },
     { title: "Hotel Preferences", icon: <Hotel className="w-5 h-5" />, requiredFields: ["hotelType", "roomType"] },
     { title: "Food & Activities", icon: <Utensils className="w-5 h-5" />, requiredFields: ["foodPreferences", "activityTypes"] },
-    { title: "Trip Theme", icon: <Heart className="w-5 h-5" />, requiredFields: ["tripTheme", "interests"] },
+    { title: "Trip Theme", icon: <Heart className="w-5 h-5" />, requiredFields: ["tripTheme"] },
     { title: "Transport & Mobility", icon: <Car className="w-5 h-5" />, requiredFields: ["transportPreferences"] },
-    { title: "Personalization", icon: <Star className="w-5 h-5" />, requiredFields: ["travelStyle"] },
+    { title: "Personalization", icon: <Star className="w-5 h-5" />, requiredFields: [] },
     { title: "Confirmation", icon: <Check className="w-5 h-5" />, requiredFields: [] },
   ];
 
@@ -207,9 +204,7 @@ export default function TripWizardForm() {
         foodPreferences: data.foodPreferences,
         activityTypes: data.activityTypes,
         tripTheme: data.tripTheme,
-        interests: data.interests,
         transportPreferences: data.transportPreferences,
-        travelStyle: data.travelStyle,
         accommodationAmenities: data.accommodationAmenities || [],
         mobilityRequirements: data.mobilityRequirements,
         specialRequirements: data.specialRequirements
@@ -254,7 +249,6 @@ export default function TripWizardForm() {
             foodPreferences: data.foodPreferences,
             activityInterests: data.activityTypes,
             tripThemes: [data.tripTheme],
-            travelPace: data.travelStyle,
             localTransportPreference: data.transportPreferences.join(', '),
             aiRecommendations: true,
             specialRequirements: data.specialRequirements,
@@ -424,19 +418,15 @@ export default function TripWizardForm() {
                             <span>Starting Location *</span>
                           </FormLabel>
                           <FormControl>
-                            <CityAutocomplete
-                              placeholder="Search for your departure city..."
-                              value={selectedStartCity}
-                              onChange={(city) => {
-                                setSelectedStartCity(city);
-                                if (city) {
-                                  const locationString = `${city.name}, ${city.state}`;
-                                  field.onChange(locationString);
-                                } else {
-                                  field.onChange("");
-                                }
-                              }}
-                            />
+                              <PlacesAutocomplete
+                                placeholder="Search for your departure place..."
+                                value={field.value || ''}
+                                onChange={(val) => field.onChange(val)}
+                                onSelect={(p) => {
+                                  field.onChange(p.description);
+                                  setSelectedStartCity({ name: p.description, state: '' });
+                                }}
+                              />
                           </FormControl>
                           {field.value && <span className="text-xs text-gray-500 mt-1">Selected: {field.value}</span>}
                           <FormMessage />
@@ -456,17 +446,13 @@ export default function TripWizardForm() {
                         </FormLabel>
                         <FormDescription>Where would you like to visit?</FormDescription>
                         <FormControl>
-                          <CityAutocomplete
+                          <PlacesAutocomplete
                             placeholder="Search for your destination..."
-                            value={selectedDestinationCity}
-                            onChange={(city) => {
-                              setSelectedDestinationCity(city);
-                              if (city) {
-                                const locationString = `${city.name}, ${city.state}`;
-                                field.onChange(locationString);
-                              } else {
-                                field.onChange("");
-                              }
+                            value={field.value || ''}
+                            onChange={(val) => field.onChange(val)}
+                            onSelect={(p) => {
+                              field.onChange(p.description);
+                              setSelectedDestinationCity({ name: p.description, state: '' });
                             }}
                           />
                         </FormControl>
@@ -801,40 +787,6 @@ export default function TripWizardForm() {
                       </FormItem>
                     )}
                   />
-
-                  <FormField
-                    control={form.control}
-                    name="interests"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="flex items-center space-x-2">
-                          <Star className="w-4 h-4" />
-                          <span>Your Interests *</span>
-                        </FormLabel>
-                        <FormDescription>Select areas that interest you most</FormDescription>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-48 overflow-y-auto border border-orange-200 rounded-lg p-4">
-                          {interests.map((interest) => (
-                            <div key={interest} className="flex items-center space-x-2">
-                              <Checkbox
-                                id={interest}
-                                checked={field.value.includes(interest)}
-                                onCheckedChange={(checked) => {
-                                  const newValue = checked
-                                    ? [...field.value, interest]
-                                    : field.value.filter((item) => item !== interest);
-                                  field.onChange(newValue);
-                                }}
-                              />
-                              <Label htmlFor={interest} className="text-sm cursor-pointer">
-                                {interest}
-                              </Label>
-                            </div>
-                          ))}
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
                 </div>
               )}
 
@@ -907,39 +859,32 @@ export default function TripWizardForm() {
                 <div className="space-y-6">
                   <FormField
                     control={form.control}
-                    name="travelStyle"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="flex items-center space-x-2">
-                          <Star className="w-4 h-4" />
-                          <span>Travel Style *</span>
-                        </FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger className="border-orange-200 focus:border-orange-400">
-                              <SelectValue placeholder="Select your travel style" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="relaxed">Relaxed & Leisurely</SelectItem>
-                            <SelectItem value="moderate">Moderate Pace</SelectItem>
-                            <SelectItem value="packed">Action-Packed</SelectItem>
-                            <SelectItem value="flexible">Flexible & Spontaneous</SelectItem>
-                            <SelectItem value="planned">Highly Planned</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
                     name="accommodationAmenities"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Preferred Hotel Amenities</FormLabel>
-                        <FormDescription>Select amenities that are important to you</FormDescription>
+                        <div className="flex items-center justify-between mb-3">
+                          <div>
+                            <FormLabel>Preferred Hotel Amenities</FormLabel>
+                            <FormDescription>Select amenities that are important to you</FormDescription>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const allAmenities = [
+                                "wifi", "pool", "gym", "spa", "parking",
+                                "restaurant", "room-service", "concierge", "ac"
+                              ];
+                              const currentValue = field.value || [];
+                              const newValue = currentValue.length === allAmenities.length ? [] : allAmenities;
+                              field.onChange(newValue);
+                            }}
+                            className="h-8 text-xs"
+                          >
+                            {field.value?.length === 9 ? "Deselect All" : "Select All"}
+                          </Button>
+                        </div>
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                           {[
                             { value: "wifi", label: "Free WiFi", icon: Wifi },
@@ -1026,9 +971,6 @@ export default function TripWizardForm() {
                       </div>
                       <div>
                         <span className="font-medium">Trip Theme:</span> {watchedFields.tripTheme}
-                      </div>
-                      <div>
-                        <span className="font-medium">Travel Style:</span> {watchedFields.travelStyle}
                       </div>
                     </div>
                   </div>
