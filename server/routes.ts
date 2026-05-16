@@ -3,8 +3,9 @@ import { readFile } from "fs/promises";
 import path from "path";
 import { storage } from "./storage";
 import { aiTravelPlanner } from "./services/gemini";
-import { insertTripSchema, insertItineraryDaySchema, insertActivitySchema, insertExpenseSchema, type AITripRequest } from "@shared/schema";
+import { insertTripSchema, insertItineraryDaySchema, insertActivitySchema, insertExpenseSchema, type AITripRequest, type AITripAssistantRequest } from "@shared/schema";
 import { z } from "zod";
+import { weatherService } from "./services/weather";
 
 type CityEntry = { name: string; state: string };
 
@@ -220,6 +221,22 @@ export async function registerRoutes(app: Express): Promise<void> {
     }
   });
 
+  app.post("/api/ai/trip-assistant", async (req, res) => {
+    try {
+      const body: AITripAssistantRequest = req.body;
+
+      if (!body.message || !body.message.trim()) {
+        return res.status(400).json({ message: "Message is required" });
+      }
+
+      const response = await aiTravelPlanner.answerTripAssistant(body);
+      res.json(response);
+    } catch (error) {
+      console.error("AI trip assistant error:", error);
+      res.status(500).json({ message: "Failed to answer trip assistant query" });
+    }
+  });
+
   // New AI recommendation routes
   app.post("/api/ai/hotel-recommendations", async (req, res) => {
     try {
@@ -335,6 +352,32 @@ export async function registerRoutes(app: Express): Promise<void> {
     } catch (error) {
       console.error('Place details error:', error);
       res.status(500).json({ message: 'Failed to get place details' });
+    }
+  });
+
+  // Weather forecast
+  app.get("/api/weather/forecast", async (req, res) => {
+    try {
+      const { destination, startDate, endDate, latitude, longitude } = req.query;
+
+      if (!destination || !startDate || !endDate) {
+        return res.status(400).json({
+          message: "destination, startDate, and endDate are required",
+        });
+      }
+
+      const forecast = await weatherService.getWeatherForecast(
+        destination as string,
+        startDate as string,
+        endDate as string,
+        latitude ? Number(latitude) : undefined,
+        longitude ? Number(longitude) : undefined
+      );
+
+      res.json({ forecast });
+    } catch (error) {
+      console.error("Weather forecast error:", error);
+      res.status(500).json({ message: "Failed to fetch weather forecast" });
     }
   });
 

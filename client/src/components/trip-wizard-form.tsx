@@ -19,7 +19,6 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { createTrip, type Trip } from "@/lib/firebaseService";
 import { useAuth } from "@/contexts/AuthContext";
-import CityAutocomplete from "@/components/CityAutocomplete";
 import PlacesAutocomplete from "@/components/PlacesAutocomplete";
 import { 
   Sparkles, 

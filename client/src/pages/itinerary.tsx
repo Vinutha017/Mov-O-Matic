@@ -4,13 +4,15 @@ import Header from "@/components/header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Share, Download, MapPin, Calendar, Users, DollarSign } from "lucide-react";
+import { ArrowLeft, Share, Download, MapPin, Calendar, Users, DollarSign, Cloud } from "lucide-react";
 import { Link } from "wouter";
 import { getTrip, type Trip } from "@/lib/firebaseService";
 import { useAuth } from "@/contexts/AuthContext";
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
 import { useToast } from "@/hooks/use-toast";
+import TripMap from "@/components/trip-map";
+import { exportTripToPDF } from "@/lib/pdf-export";
+import AITripAssistant from "@/components/ai-trip-assistant";
+import { WeatherForecast } from "@/components/weather-forecast";
 
 export default function Itinerary() {
   const { id } = useParams() as { id: string };
@@ -19,11 +21,39 @@ export default function Itinerary() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
-  const printRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
   // Get trip ID from URL params or localStorage
   const tripId = id || localStorage.getItem('currentTripId');
+
+  const mapStops = (() => {
+    if (!trip?.aiRecommendation) return [];
+
+    const hotelStops = Array.isArray(trip.aiRecommendation.hotels)
+      ? trip.aiRecommendation.hotels.map((hotel: any) => ({
+          label: hotel.name || 'Hotel',
+          location: hotel.location || hotel.address || trip.destination,
+          description: hotel.description || 'Recommended stay'
+        }))
+      : [];
+
+    const activityStops = Array.isArray(trip.aiRecommendation.itinerary)
+      ? trip.aiRecommendation.itinerary.flatMap((day: any) =>
+          Array.isArray(day.activities)
+            ? day.activities
+                .filter((activity: any) => activity && typeof activity === 'object')
+                .slice(0, 2)
+                .map((activity: any) => ({
+                  label: activity.title || 'Activity',
+                  location: activity.location || trip.destination,
+                  description: activity.description || `Day ${day.day}`,
+                }))
+            : []
+        )
+      : [];
+
+    return [...hotelStops, ...activityStops].slice(0, 6);
+  })();
 
   useEffect(() => {
     const fetchTrip = async () => {
@@ -136,141 +166,12 @@ export default function Itinerary() {
 
   // Handle PDF download
   const handleDownload = async () => {
-    if (!trip || !printRef.current) return;
+    if (!trip) return;
     
     setIsGeneratingPDF(true);
     
     try {
-      // Create a copy of the content for PDF generation
-      const element = printRef.current;
-      
-      // Temporarily style the element for better PDF generation
-      const originalStyle = element.style.cssText;
-      const originalClass = element.className;
-      
-      // Set optimal width for PDF content
-      element.style.width = '210mm'; // A4 width
-      element.style.maxWidth = 'none';
-      element.style.minHeight = 'auto';
-      element.style.overflow = 'visible';
-      element.style.transform = 'scale(1)';
-      element.style.transformOrigin = 'top left';
-      element.style.fontSize = '14px';
-      element.style.lineHeight = '1.5';
-      element.style.padding = '15mm';
-      element.style.boxSizing = 'border-box';
-      element.className = originalClass + ' pdf-generating';
-      
-      // Wait for layout to settle
-      await new Promise(resolve => setTimeout(resolve, 200));
-      
-      const canvas = await html2canvas(element, {
-        scale: 1.5, // Balanced quality
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#ffffff',
-        width: element.offsetWidth,
-        height: element.scrollHeight,
-        scrollX: 0,
-        scrollY: 0,
-        logging: false,
-        ignoreElements: (element) => {
-          return element.classList?.contains('print-hidden') || false;
-        }
-      });
-      
-      // Restore original styles
-      element.style.cssText = originalStyle;
-      element.className = originalClass;
-      
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4'
-      });
-      
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-      
-      const canvasWidth = canvas.width;
-      const canvasHeight = canvas.height;
-      
-      // Minimal margins for maximum content area
-      const margin = 5; // 5mm margin
-      const availableWidth = pdfWidth - (margin * 2);
-      const availableHeight = pdfHeight - (margin * 2);
-      
-      // Calculate scaling to fit the content properly
-      const widthRatio = availableWidth / canvasWidth;
-      const heightRatio = availableHeight / canvasHeight;
-      
-      // Use the smaller ratio to ensure everything fits
-      const scale = Math.min(widthRatio, 1); // Don't scale up, only down if needed
-      
-      const imgWidth = canvasWidth * scale;
-      const imgHeight = canvasHeight * scale;
-      
-      // Center the content
-      const imgX = (pdfWidth - imgWidth) / 2;
-      const imgY = margin;
-      
-      // Check if content needs multiple pages
-      if (imgHeight > availableHeight) {
-        const pageHeight = availableHeight;
-        const pages = Math.ceil(imgHeight / pageHeight);
-        
-        for (let i = 0; i < pages; i++) {
-          if (i > 0) pdf.addPage();
-          
-          // Calculate the source area for this page
-          const sourceY = (i * pageHeight) / scale;
-          const sourceHeight = Math.min(pageHeight / scale, canvasHeight - sourceY);
-          
-          if (sourceHeight > 0) {
-            // Create a temporary canvas for each page
-            const pageCanvas = document.createElement('canvas');
-            const ctx = pageCanvas.getContext('2d');
-            if (ctx) {
-              pageCanvas.width = canvasWidth;
-              pageCanvas.height = sourceHeight;
-              
-              // Clear the canvas
-              ctx.fillStyle = '#ffffff';
-              ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
-              
-              // Draw the portion of the original canvas for this page
-              ctx.drawImage(
-                canvas,
-                0, sourceY,
-                canvasWidth, sourceHeight,
-                0, 0,
-                pageCanvas.width, pageCanvas.height
-              );
-              
-              // Add the page image with proper scaling
-              const pageImgWidth = pageCanvas.width * scale;
-              const pageImgHeight = pageCanvas.height * scale;
-              const pageImgX = (pdfWidth - pageImgWidth) / 2;
-              
-              pdf.addImage(
-                pageCanvas.toDataURL('image/png'), 
-                'PNG', 
-                pageImgX, 
-                margin, 
-                pageImgWidth, 
-                pageImgHeight
-              );
-            }
-          }
-        }
-      } else {
-        // Single page - center the content
-        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', imgX, imgY, imgWidth, imgHeight);
-      }
-      
-      // Save the PDF
-      const filename = `${trip.title.replace(/[^a-zA-Z0-9]/g, '_')}_Itinerary.pdf`;
-      pdf.save(filename);
+      await exportTripToPDF(trip, mapStops);
       
       toast({
         title: "Download Complete",
@@ -381,10 +282,26 @@ export default function Itinerary() {
 
   const duration = calculateDuration(trip.startDate, trip.endDate);
 
+  const toIsoStringSafe = (date: Date | string | { seconds?: number; toDate?: () => Date } | null | undefined) => {
+    if (!date) return undefined;
+
+    const normalizedDate = date instanceof Date
+      ? date
+      : typeof date === 'string'
+        ? new Date(date)
+        : typeof date === 'object' && typeof date.seconds === 'number'
+          ? new Date(date.seconds * 1000)
+          : typeof date === 'object' && typeof date.toDate === 'function'
+            ? date.toDate()
+            : new Date(date as any);
+
+    return Number.isNaN(normalizedDate.getTime()) ? undefined : normalizedDate.toISOString();
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
-      <div className="travel-container py-8 pdf-content" ref={printRef}>
+      <div className="travel-container py-8 pdf-content">
         {/* Header Section */}
         <div className="flex items-center justify-between mb-6 print-hidden">
           <Link href="/dashboard">
@@ -510,10 +427,12 @@ export default function Itinerary() {
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="planning" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-3 lg:w-[400px] print-hidden">
+              <TabsList className="grid w-full grid-cols-5 lg:w-full print-hidden">
                 <TabsTrigger value="planning">Planning Details</TabsTrigger>
                 <TabsTrigger value="preferences">Preferences</TabsTrigger>
                 <TabsTrigger value="itinerary">Itinerary</TabsTrigger>
+                <TabsTrigger value="weather">Weather</TabsTrigger>
+                <TabsTrigger value="map">Map</TabsTrigger>
               </TabsList>
 
               <TabsContent value="planning">
@@ -1031,10 +950,54 @@ export default function Itinerary() {
                   </CardContent>
                 </Card>
               </TabsContent>
+
+              <TabsContent value="weather">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Cloud className="w-5 h-5 text-blue-500" />
+                      Weather Forecast
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <WeatherForecast
+                      destination={trip.destination}
+                      startDate={toIsoStringSafe(trip.startDate)?.split('T')[0]}
+                      endDate={toIsoStringSafe(trip.endDate)?.split('T')[0]}
+                    />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="map">
+                <TripMap
+                  destination={trip.destination}
+                  startLocation={trip.metadata?.travelInfo?.startLocation}
+                  stops={mapStops}
+                />
+              </TabsContent>
             </Tabs>
           </CardContent>
         </Card>
       </div>
+
+      <AITripAssistant
+        tripContext={{
+          title: trip.title,
+          destination: trip.destination,
+          startLocation: trip.metadata?.travelInfo?.startLocation,
+          startDate: toIsoStringSafe(trip.startDate),
+          endDate: toIsoStringSafe(trip.endDate),
+          budget: typeof trip.budget === 'number' ? trip.budget : Number(trip.budget || 0),
+          travelers: trip.travelers,
+          tripType: trip.tripType,
+          travelStyle: trip.metadata?.preferences?.travelPace,
+          interests: trip.metadata?.preferences?.activityInterests,
+          transportPreferences: trip.metadata?.preferences?.localTransportPreference ? [trip.metadata.preferences.localTransportPreference] : undefined,
+          accommodationAmenities: trip.metadata?.hotelPreferences?.facilitiesRequired,
+          summary: trip.aiRecommendation?.tips?.slice(0, 3)?.join(' '),
+        }}
+      />
     </div>
   );
 }

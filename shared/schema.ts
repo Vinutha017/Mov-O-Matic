@@ -259,3 +259,35 @@ export interface AIRecommendationPreferences {
   travelers: number;
   duration?: number;
 }
+
+export interface AITripAssistantMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  createdAt?: string;
+}
+
+export interface AITripAssistantRequest {
+  message: string;
+  tripContext?: {
+    title?: string;
+    destination?: string;
+    startLocation?: string;
+    startDate?: string;
+    endDate?: string;
+    budget?: number;
+    travelers?: number;
+    tripType?: string;
+    travelStyle?: string;
+    interests?: string[];
+    transportPreferences?: string[];
+    accommodationAmenities?: string[];
+    summary?: string;
+  };
+  conversationHistory?: AITripAssistantMessage[];
+}
+
+export interface AITripAssistantResponse {
+  reply: string;
+  suggestions: string[];
+  contextUsed: string[];
+}

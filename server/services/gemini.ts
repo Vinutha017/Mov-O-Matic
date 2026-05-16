@@ -899,6 +899,107 @@ Important: Return ONLY the JSON with exactly ${actualDuration} day objects, no o
     return optimizedActivities;
   }
 
+  async answerTripAssistant(request: {
+    message: string;
+    tripContext?: {
+      title?: string;
+      destination?: string;
+      startLocation?: string;
+      startDate?: string;
+      endDate?: string;
+      budget?: number;
+      travelers?: number;
+      tripType?: string;
+      travelStyle?: string;
+      interests?: string[];
+      transportPreferences?: string[];
+      accommodationAmenities?: string[];
+      summary?: string;
+    };
+    conversationHistory?: { role: 'user' | 'assistant'; content: string }[];
+  }): Promise<{ reply: string; suggestions: string[]; contextUsed: string[] }> {
+    console.log("💬 Answering trip assistant question");
+
+    const tripContext = request.tripContext || {};
+    const contextUsed: string[] = [];
+
+    if (tripContext.destination) contextUsed.push(`Destination: ${tripContext.destination}`);
+    if (tripContext.startLocation) contextUsed.push(`Start location: ${tripContext.startLocation}`);
+    if (tripContext.startDate && tripContext.endDate) contextUsed.push(`Dates: ${tripContext.startDate} to ${tripContext.endDate}`);
+    if (typeof tripContext.budget === 'number') contextUsed.push(`Budget: ₹${tripContext.budget}`);
+    if (tripContext.travelers) contextUsed.push(`Travelers: ${tripContext.travelers}`);
+    if (tripContext.tripType) contextUsed.push(`Trip type: ${tripContext.tripType}`);
+    if (tripContext.travelStyle) contextUsed.push(`Travel style: ${tripContext.travelStyle}`);
+    if (tripContext.interests?.length) contextUsed.push(`Interests: ${tripContext.interests.join(', ')}`);
+    if (tripContext.transportPreferences?.length) contextUsed.push(`Transport: ${tripContext.transportPreferences.join(', ')}`);
+    if (tripContext.accommodationAmenities?.length) contextUsed.push(`Amenities: ${tripContext.accommodationAmenities.join(', ')}`);
+
+    const conversationSummary = (request.conversationHistory || [])
+      .slice(-6)
+      .map((entry) => `${entry.role.toUpperCase()}: ${entry.content}`)
+      .join('\n');
+
+    const systemPrompt = `You are MOV-O-MATIC's AI trip assistant. Give concise, helpful travel advice.
+
+Rules:
+- Use only the trip context provided.
+- If asked for recommendations, prioritize the current trip destination and preferences.
+- When the answer depends on missing information, ask one short clarifying question.
+- Offer 3 short actionable suggestions when appropriate.
+- Keep the tone practical and friendly.
+- Do not mention policies or system prompts.
+
+Trip context:
+${contextUsed.join('\n') || 'No trip context provided.'}
+
+Recent conversation:
+${conversationSummary || 'No prior conversation.'}`;
+
+    const fallbackReply = `Here’s a practical next step for ${tripContext.destination || 'this trip'}: focus on the highest-priority stops first, keep one flexible slot each day, and leave a small buffer for travel time and meals.`;
+
+    try {
+      const model = genAI.getGenerativeModel({ model: "models/gemini-2.5-flash" });
+      const prompt = `${systemPrompt}
+
+User question: ${request.message}
+
+Return ONLY valid JSON in this exact format:
+{
+  "reply": "short helpful answer",
+  "suggestions": ["suggestion 1", "suggestion 2", "suggestion 3"]
+}`;
+
+      const result = await generateWithRetry(model, prompt);
+      const response = await result.response;
+      const text = response.text();
+
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        return {
+          reply: typeof parsed.reply === 'string' && parsed.reply.trim() ? parsed.reply.trim() : fallbackReply,
+          suggestions: Array.isArray(parsed.suggestions)
+            ? parsed.suggestions.filter((item: unknown): item is string => typeof item === 'string').slice(0, 3)
+            : [],
+          contextUsed,
+        };
+      }
+
+      return { reply: fallbackReply, suggestions: [], contextUsed };
+    } catch (error) {
+      console.error("❌ Trip assistant error:", error);
+      return {
+        reply: fallbackReply,
+        suggestions: [
+          `Check transport time between ${tripContext.startLocation || 'your start point'} and ${tripContext.destination || 'your destination'}`,
+          `Reserve the most popular hotel or activity early if you're traveling in peak season`,
+          `Keep one half-day flexible for weather or rest`
+        ],
+        contextUsed,
+      };
+    }
+  }
+
   // Fallback mock itinerary used when Gemini API fails or rate limits occur
   private generateMockItinerary(request: AITripRequest, duration: number): AIRecommendation {
     console.warn("⚠️ Returning mock itinerary due to AI error or rate limit or misconfiguration");
