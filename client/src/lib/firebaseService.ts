@@ -189,6 +189,8 @@ export interface Trip {
   tripType: 'adventure' | 'relaxation' | 'cultural' | 'business' | 'family' | 'romantic';
   status: 'planning' | 'confirmed' | 'ongoing' | 'completed' | 'cancelled';
   aiRecommendation?: any; // AI-generated itinerary from Gemini
+  isPublic?: boolean;
+  collaborators?: TripCollaborator[];
   // Comprehensive India trip planning metadata
   metadata?: {
     personalDetails?: {
@@ -257,6 +259,16 @@ export interface Trip {
   }[];
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface TripCollaborator {
+  email: string;
+  permission: 'view' | 'edit' | 'admin';
+  status: 'pending' | 'accepted' | 'declined';
+  invitedBy?: string;
+  invitedAt: Date;
+  userId?: string;
+  displayName?: string;
 }
 
 export const createTrip = async (tripData: Omit<Trip, 'id' | 'createdAt' | 'updatedAt'>) => {
@@ -349,6 +361,50 @@ export const updateTrip = async (tripId: string, data: Partial<Trip>) => {
     });
   } catch (error) {
     console.error('Error updating trip:', error);
+    throw error;
+  }
+};
+
+export const inviteTripCollaborator = async (
+  tripId: string,
+  collaborator: Omit<TripCollaborator, 'invitedAt'>
+) => {
+  try {
+    const trip = await getTrip(tripId);
+
+    if (!trip) {
+      throw new Error('Trip not found');
+    }
+
+    const collaborators = Array.isArray(trip.collaborators) ? [...trip.collaborators] : [];
+    const normalizedEmail = collaborator.email.trim().toLowerCase();
+    const collaboratorIndex = collaborators.findIndex(
+      (entry) => entry.email.trim().toLowerCase() === normalizedEmail
+    );
+
+    const nextCollaborator: TripCollaborator = {
+      ...collaborator,
+      email: collaborator.email.trim(),
+      invitedAt: new Date(),
+    };
+
+    if (collaboratorIndex >= 0) {
+      collaborators[collaboratorIndex] = {
+        ...collaborators[collaboratorIndex],
+        ...nextCollaborator,
+      };
+    } else {
+      collaborators.push(nextCollaborator);
+    }
+
+    await updateTrip(tripId, {
+      collaborators,
+      isPublic: true,
+    });
+
+    return collaborators;
+  } catch (error) {
+    console.error('Error inviting trip collaborator:', error);
     throw error;
   }
 };

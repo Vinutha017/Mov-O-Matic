@@ -15,7 +15,15 @@ import {
   type InsertExpense,
   type WeatherAlert,
   type InsertWeatherAlert,
-  type TripWithDetails
+  type TripWithDetails,
+  type Booking,
+  type InsertBooking,
+  type BookingQuote,
+  type InsertBookingQuote,
+  type Payment,
+  type InsertPayment,
+  type AvailabilitySnapshot,
+  type InsertAvailabilitySnapshot
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -66,6 +74,19 @@ export interface IStorage {
   getWeatherAlertsByTripId(tripId: string): Promise<WeatherAlert[]>;
   createWeatherAlert(alert: InsertWeatherAlert): Promise<WeatherAlert>;
   markWeatherAlertAsRead(id: string): Promise<boolean>;
+
+  // Booking
+  getBookingsByUserId(userId: string): Promise<Booking[]>;
+  getBooking(id: string): Promise<Booking | undefined>;
+  createBooking(booking: InsertBooking): Promise<Booking>;
+  updateBooking(id: string, booking: Partial<Booking>): Promise<Booking | undefined>;
+  getBookingQuote(id: string): Promise<BookingQuote | undefined>;
+  createBookingQuote(quote: InsertBookingQuote): Promise<BookingQuote>;
+  getQuotesBySearchKey(searchKey: string): Promise<BookingQuote[]>;
+  createPayment(payment: InsertPayment): Promise<Payment>;
+  getPaymentsByBookingId(bookingId: string): Promise<Payment[]>;
+  getAvailabilitySnapshot(searchKey: string): Promise<AvailabilitySnapshot | undefined>;
+  upsertAvailabilitySnapshot(snapshot: InsertAvailabilitySnapshot): Promise<AvailabilitySnapshot>;
 }
 
 export class MemStorage implements IStorage {
@@ -77,6 +98,10 @@ export class MemStorage implements IStorage {
   private destinations: Map<string, Destination> = new Map();
   private expenses: Map<string, Expense> = new Map();
   private weatherAlerts: Map<string, WeatherAlert> = new Map();
+  private bookings: Map<string, Booking> = new Map();
+  private bookingQuotes: Map<string, BookingQuote> = new Map();
+  private payments: Map<string, Payment> = new Map();
+  private availabilitySnapshots: Map<string, AvailabilitySnapshot> = new Map();
 
   constructor() {
     this.seedData();
@@ -498,6 +523,149 @@ export class MemStorage implements IStorage {
     alert.isRead = true;
     this.weatherAlerts.set(id, alert);
     return true;
+  }
+
+  // Booking
+  async getBookingsByUserId(userId: string): Promise<Booking[]> {
+    return Array.from(this.bookings.values())
+      .filter(booking => booking.userId === userId)
+      .sort((a, b) => new Date(b.createdAt ?? new Date()).getTime() - new Date(a.createdAt ?? new Date()).getTime());
+  }
+
+  async getBooking(id: string): Promise<Booking | undefined> {
+    return this.bookings.get(id);
+  }
+
+  async createBooking(insertBooking: InsertBooking): Promise<Booking> {
+    const id = randomUUID();
+    const booking: Booking = {
+      id,
+      userId: insertBooking.userId ?? null,
+      tripId: insertBooking.tripId ?? null,
+      quoteId: insertBooking.quoteId ?? null,
+      providerType: insertBooking.providerType,
+      providerName: insertBooking.providerName,
+      providerReservationId: insertBooking.providerReservationId ?? null,
+      bookingReference: insertBooking.bookingReference ?? null,
+      status: insertBooking.status ?? null,
+      startDate: insertBooking.startDate ?? null,
+      endDate: insertBooking.endDate ?? null,
+      travelDate: insertBooking.travelDate ?? null,
+      travelers: insertBooking.travelers ?? null,
+      totalAmount: insertBooking.totalAmount ?? null,
+      currency: insertBooking.currency ?? null,
+      holdExpiresAt: insertBooking.holdExpiresAt ?? null,
+      contactDetails: insertBooking.contactDetails ?? null,
+      providerPayload: insertBooking.providerPayload ?? null,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.bookings.set(id, booking);
+    return booking;
+  }
+
+  async updateBooking(id: string, bookingUpdate: Partial<Booking>): Promise<Booking | undefined> {
+    const booking = this.bookings.get(id);
+    if (!booking) return undefined;
+
+    const updatedBooking = { ...booking, ...bookingUpdate, updatedAt: new Date() };
+    this.bookings.set(id, updatedBooking);
+    return updatedBooking;
+  }
+
+  async getBookingQuote(id: string): Promise<BookingQuote | undefined> {
+    return this.bookingQuotes.get(id);
+  }
+
+  async createBookingQuote(insertQuote: InsertBookingQuote): Promise<BookingQuote> {
+    const id = randomUUID();
+    const quote: BookingQuote = {
+      id,
+      bookingId: insertQuote.bookingId ?? null,
+      providerType: insertQuote.providerType,
+      providerName: insertQuote.providerName,
+      searchKey: insertQuote.searchKey,
+      title: insertQuote.title,
+      description: insertQuote.description ?? null,
+      totalAmount: insertQuote.totalAmount,
+      currency: insertQuote.currency ?? null,
+      travelers: insertQuote.travelers ?? null,
+      expiresAt: insertQuote.expiresAt ?? null,
+      providerPayload: insertQuote.providerPayload ?? null,
+      createdAt: new Date()
+    };
+    this.bookingQuotes.set(id, quote);
+    return quote;
+  }
+
+  async getQuotesBySearchKey(searchKey: string): Promise<BookingQuote[]> {
+    return Array.from(this.bookingQuotes.values())
+      .filter(quote => quote.searchKey === searchKey)
+      .sort((a, b) => new Date(b.createdAt ?? new Date()).getTime() - new Date(a.createdAt ?? new Date()).getTime());
+  }
+
+  async createPayment(insertPayment: InsertPayment): Promise<Payment> {
+    const id = randomUUID();
+    const payment: Payment = {
+      id,
+      bookingId: insertPayment.bookingId,
+      provider: insertPayment.provider,
+      providerPaymentId: insertPayment.providerPaymentId ?? null,
+      status: insertPayment.status ?? null,
+      amount: insertPayment.amount,
+      currency: insertPayment.currency ?? null,
+      method: insertPayment.method ?? null,
+      idempotencyKey: insertPayment.idempotencyKey ?? null,
+      metadata: insertPayment.metadata ?? null,
+      authorizedAt: insertPayment.authorizedAt ?? null,
+      capturedAt: insertPayment.capturedAt ?? null,
+      refundedAt: insertPayment.refundedAt ?? null,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.payments.set(id, payment);
+    return payment;
+  }
+
+  async getPaymentsByBookingId(bookingId: string): Promise<Payment[]> {
+    return Array.from(this.payments.values())
+      .filter(payment => payment.bookingId === bookingId)
+      .sort((a, b) => new Date(b.createdAt ?? new Date()).getTime() - new Date(a.createdAt ?? new Date()).getTime());
+  }
+
+  async getAvailabilitySnapshot(searchKey: string): Promise<AvailabilitySnapshot | undefined> {
+    return Array.from(this.availabilitySnapshots.values()).find(snapshot => snapshot.searchKey === searchKey);
+  }
+
+  async upsertAvailabilitySnapshot(insertSnapshot: InsertAvailabilitySnapshot): Promise<AvailabilitySnapshot> {
+    const existing = await this.getAvailabilitySnapshot(insertSnapshot.searchKey);
+
+    if (existing) {
+      const updatedSnapshot: AvailabilitySnapshot = {
+        ...existing,
+        ...insertSnapshot,
+        updatedAt: new Date(),
+        fetchedAt: insertSnapshot.fetchedAt ?? existing.fetchedAt ?? new Date()
+      };
+      this.availabilitySnapshots.set(updatedSnapshot.id, updatedSnapshot);
+      return updatedSnapshot;
+    }
+
+    const id = randomUUID();
+    const snapshot: AvailabilitySnapshot = {
+      id,
+      providerType: insertSnapshot.providerType,
+      providerName: insertSnapshot.providerName,
+      searchKey: insertSnapshot.searchKey,
+      status: insertSnapshot.status ?? null,
+      payload: insertSnapshot.payload ?? null,
+      fetchedAt: insertSnapshot.fetchedAt ?? new Date(),
+      expiresAt: insertSnapshot.expiresAt ?? null,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.availabilitySnapshots.set(id, snapshot);
+    return snapshot;
   }
 }
 

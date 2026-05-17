@@ -17,17 +17,17 @@ const socialLinks = [
 
 export default function Footer() {
   return (
-    <footer className="bg-gray-800 text-white">
+    <footer className="bg-rose-950 text-white">
       <div className="travel-container py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Logo & Tagline */}
           <div className="md:col-span-2">
             <Link href="/" className="flex items-center space-x-3 mb-4">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 via-purple-600 to-teal-500 rounded-xl flex items-center justify-center shadow-lg">
+              <div className="w-10 h-10 bg-gradient-to-br from-rose-600 via-pink-500 to-rose-300 rounded-xl flex items-center justify-center shadow-lg shadow-rose-500/20">
                 <Route className="text-white text-lg" />
               </div>
-              <span className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                Move-O-Matic
+              <span className="text-2xl font-bold bg-gradient-to-r from-rose-200 to-pink-200 bg-clip-text text-transparent">
+                Planora
               </span>
             </Link>
             <p className="text-gray-400 mb-6 max-w-md">
@@ -40,7 +40,7 @@ export default function Footer() {
                 <a
                   key={social.name}
                   href={social.href}
-                  className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-gradient-to-r hover:from-blue-600 hover:to-purple-600 transition-all duration-300 transform hover:scale-110"
+                  className="w-10 h-10 bg-rose-950 rounded-lg flex items-center justify-center hover:bg-gradient-to-r hover:from-rose-600 hover:to-pink-500 transition-all duration-300 transform hover:scale-110"
                   aria-label={social.name}
                 >
                   <social.icon className="w-5 h-5" />
@@ -82,7 +82,7 @@ export default function Footer() {
         {/* Bottom Bar */}
         <div className="border-t border-gray-800 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
           <p className="text-gray-400 text-sm">
-            © {new Date().getFullYear()} Move-O-Matic. All rights reserved.
+            © {new Date().getFullYear()} Planora. All rights reserved.
           </p>
           <div className="flex space-x-6 mt-4 md:mt-0">
             <a href="#" className="text-gray-400 hover:text-white text-sm transition-colors">

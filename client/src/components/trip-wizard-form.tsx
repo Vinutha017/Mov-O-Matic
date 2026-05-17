@@ -317,10 +317,10 @@ export default function TripWizardForm() {
     <div className="max-w-4xl mx-auto p-6 space-y-8">
       {/* Header */}
       <div className="text-center space-y-4">
-        <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-orange-500 to-red-500 rounded-full mb-4">
+        <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-rose-300 to-rose-200 rounded-full mb-4 shadow-md shadow-rose-200/50">
           <Sparkles className="w-8 h-8 text-white" />
         </div>
-        <h1 className="text-4xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
+        <h1 className="text-4xl font-bold bg-gradient-to-r from-rose-800 to-rose-500 bg-clip-text text-transparent">
           Plan Your Perfect India Trip
         </h1>
         <p className="text-xl text-gray-600 max-w-2xl mx-auto">
@@ -332,7 +332,7 @@ export default function TripWizardForm() {
       <div className="space-y-4">
         <div className="flex justify-between items-center">
           <span className="text-sm font-medium text-gray-600">Progress</span>
-          <span className="text-sm font-medium text-orange-600">{Math.round(progressPercentage)}% Complete</span>
+          <span className="text-sm font-medium text-rose-700">{Math.round(progressPercentage)}% Complete</span>
         </div>
         <Progress value={progressPercentage} className="h-2" />
       </div>
@@ -353,10 +353,10 @@ export default function TripWizardForm() {
               key={index}
               onClick={() => setCurrentSection(index)}
               className={`p-3 rounded-lg text-sm font-medium transition-all duration-200 flex items-center space-x-2 ${
-                currentSection === index
-                  ? 'bg-orange-500 text-white shadow-lg'
+                  currentSection === index
+                  ? 'bg-rose-300 text-rose-950 shadow-sm ring-1 ring-rose-200'
                   : isCompleted
-                  ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                  ? 'bg-rose-50 text-rose-700 hover:bg-rose-100'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
@@ -368,7 +368,7 @@ export default function TripWizardForm() {
       </div>
 
       {/* Form */}
-      <Card className="bg-white/80 backdrop-blur-sm border-orange-200 shadow-xl">
+      <Card className="bg-white/85 backdrop-blur-sm border-rose-100 shadow-lg">
         <CardHeader className="pb-4">
           <CardTitle className="flex items-center space-x-3 text-2xl text-gray-800">
             {sections[currentSection].icon}
@@ -399,7 +399,7 @@ export default function TripWizardForm() {
                               max="20"
                               {...field}
                               onChange={(e) => field.onChange(parseInt(e.target.value))}
-                              className="border-orange-200 focus:border-orange-400"
+                              className="border-rose-200 focus:border-rose-300"
                             />
                           </FormControl>
                           <FormMessage />

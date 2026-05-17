@@ -59,7 +59,7 @@ export default function Login() {
       await login(email, password);
       toast({
         title: "Login Successful",
-        description: "Welcome back to Mov-O-Matic!",
+        description: "Welcome back to Planora!",
       });
       setLocation('/welcome');
     } catch (error: any) {
@@ -107,7 +107,7 @@ export default function Login() {
       await signInWithGoogle();
       toast({
         title: "Login Successful",
-        description: "Welcome to Mov-O-Matic!",
+        description: "Welcome to Planora!",
       });
       setLocation('/welcome');
     } catch (error: any) {
@@ -137,8 +137,8 @@ export default function Login() {
             <div className="w-12 h-12 bg-gradient-to-br from-blue-600 via-purple-600 to-teal-500 rounded-xl flex items-center justify-center shadow-lg">
               <Route className="text-white text-xl" />
             </div>
-            <span className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              Move-O-Matic
+              <span className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              Planora
             </span>
           </Link>
           

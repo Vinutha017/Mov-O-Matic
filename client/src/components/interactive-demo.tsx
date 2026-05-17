@@ -33,7 +33,7 @@ export default function InteractiveDemo() {
     <section className="travel-section bg-white">
       <div className="travel-container">
         <div className="text-center mb-16">
-          <h2 className="travel-heading">See MOV O MATIC in Action</h2>
+          <h2 className="travel-heading">See Planora in Action</h2>
           <p className="travel-subheading">Experience the power of AI-driven travel planning</p>
         </div>
         

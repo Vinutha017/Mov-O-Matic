@@ -18,7 +18,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 app.use((req, res, next) => {
-  res.setHeader('X-Powered-By', 'Mov-O-Matic');
+  res.setHeader('X-Powered-By', 'Planora');
   const start = Date.now();
   const path = req.path;
   let capturedJsonResponse: Record<string, any> | undefined = undefined;
@@ -62,8 +62,8 @@ app.use((req, res, next) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
 
-    res.setHeader('X-Powered-By', 'Mov-O-Matic');
-    res.status(status).json({ message, server: 'Mov-O-Matic' });
+    res.setHeader('X-Powered-By', 'Planora');
+    res.status(status).json({ message, server: 'Planora' });
     throw err;
   });
 

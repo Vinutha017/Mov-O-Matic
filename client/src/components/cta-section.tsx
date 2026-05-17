@@ -4,13 +4,13 @@ import { Link } from "wouter";
 
 export default function CTASection() {
   return (
-    <section className="py-24 bg-gradient-to-br from-blue-600 via-teal-600 to-purple-600">
+    <section className="py-24 bg-gradient-to-br from-rose-700 via-pink-600 to-rose-500">
       
       <div className="container mx-auto px-4 relative z-10">
         <div className="text-center max-w-4xl mx-auto">
           <h2 className="font-hero text-4xl md:text-5xl lg:text-6xl text-white mb-6 leading-tight">
             Ready for your next
-            <span className="block bg-gradient-to-r from-yellow-300 to-teal-300 bg-clip-text text-transparent">
+            <span className="block bg-gradient-to-r from-rose-200 to-pink-200 bg-clip-text text-transparent">
               adventure?
             </span>
           </h2>
@@ -23,7 +23,7 @@ export default function CTASection() {
             <Link href="/signup">
               <Button 
                 size="lg" 
-                className="bg-gradient-to-r from-white to-gray-50 text-gray-900 hover:from-gray-50 hover:to-gray-100 border-2 border-white/50 font-semibold px-12 py-6 rounded-2xl text-lg shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 backdrop-blur-sm"
+                className="bg-gradient-to-r from-white to-rose-50 text-rose-950 hover:from-rose-50 hover:to-rose-100 border-2 border-white/50 font-semibold px-12 py-6 rounded-2xl text-lg shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 backdrop-blur-sm"
               >
                 Start Planning Now
                 <ArrowRight className="ml-2 w-5 h-5" />

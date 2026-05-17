@@ -3,6 +3,8 @@ import { readFile } from "fs/promises";
 import path from "path";
 import { storage } from "./storage";
 import { aiTravelPlanner } from "./services/gemini";
+import { getPersonalizedRecommendations } from "./services/recommendation-engine";
+import { registerBookingRoutes } from "./modules/bookings/booking.routes";
 import { insertTripSchema, insertItineraryDaySchema, insertActivitySchema, insertExpenseSchema, type AITripRequest, type AITripAssistantRequest } from "@shared/schema";
 import { z } from "zod";
 import { weatherService } from "./services/weather";
@@ -22,6 +24,8 @@ async function loadFallbackCities(): Promise<CityEntry[]> {
 }
 
 export async function registerRoutes(app: Express): Promise<void> {
+  await registerBookingRoutes(app);
+
   // Trip creation and AI planning
   app.post("/api/trips/generate", async (req, res) => {
     try {
@@ -63,6 +67,16 @@ export async function registerRoutes(app: Express): Promise<void> {
     } catch (error) {
       console.error("Get trip error:", error);
       res.status(500).json({ message: "Failed to retrieve trip" });
+    }
+  });
+
+  app.get("/api/recommendations/:tripId", async (req, res) => {
+    try {
+      const recommendations = await getPersonalizedRecommendations(req.params.tripId);
+      res.json(recommendations);
+    } catch (error) {
+      console.error("Recommendation engine error:", error);
+      res.status(404).json({ message: "Trip recommendations not available" });
     }
   });
 

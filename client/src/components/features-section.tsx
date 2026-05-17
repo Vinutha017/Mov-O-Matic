@@ -5,43 +5,37 @@ const coreFeatures = [
     icon: Brain,
     title: "AI-Powered Itinerary Builder",
     description: "Let artificial intelligence create personalized travel plans based on your preferences, budget, and interests.",
-    gradient: "from-blue-600 to-purple-600",
+    gradient: "from-rose-500 to-pink-400",
     highlights: ["Smart destination suggestions", "Personalized activities", "Budget-optimized plans"]
   },
   {
     icon: Wallet,
     title: "Smart Budget Tracking",
     description: "Keep your travel expenses organized with intelligent budget tracking and real-time spending insights.",
-    gradient: "from-green-600 to-teal-600",
+    gradient: "from-rose-600 to-rose-300",
     highlights: ["Real-time expense tracking", "Currency conversion", "Budget alerts & insights"]
   },
   {
     icon: Hotel,
     title: "Hotel Recommendations",
     description: "Discover the perfect accommodations with AI-powered hotel suggestions tailored to your travel style.",
-    gradient: "from-orange-600 to-red-600",
+    gradient: "from-rose-700 to-pink-500",
     highlights: ["Personalized hotel matches", "Price comparison", "Guest review analysis"]
   },
-  {
-    icon: Users,
-    title: "Share & Collaborate",
-    description: "Plan together with friends and family. Share itineraries, collaborate in real-time, and export your plans.",
-    gradient: "from-pink-600 to-rose-600",
-    highlights: ["Real-time collaboration", "Trip sharing", "PDF export & offline access"]
-  }
+  
 ];
 
 export default function FeaturesSection() {
   return (
-    <section id="features" className="py-20 bg-gray-50">
+    <section id="features" className="py-20 bg-gradient-to-br from-rose-50 via-white to-pink-50">
       <div className="travel-container">
         <div className="text-center mb-16">
-          <div className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-50 to-teal-50 text-blue-800 rounded-full text-sm font-button mb-6 border border-blue-200 shadow-lg backdrop-blur-sm">
+          <div className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-rose-50 to-pink-50 text-rose-800 rounded-full text-sm font-button mb-6 border border-rose-200 shadow-lg backdrop-blur-sm">
             <Sparkles className="w-4 h-4 mr-2" />
             Your Complete Travel Toolkit
           </div>
           <h2 className="font-heading text-4xl md:text-5xl mb-6 leading-tight text-gray-900">
-            <span className="bg-gradient-to-r from-blue-600 to-teal-600 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-rose-700 to-pink-500 bg-clip-text text-transparent">
               Powerful tools for seamless travel planning
             </span>
           </h2>
@@ -51,7 +45,7 @@ export default function FeaturesSection() {
           {coreFeatures.map((feature, index) => (
             <div 
               key={index} 
-              className="group bg-white/95 backdrop-blur-sm rounded-3xl shadow-xl border border-blue-100 p-10 hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 relative overflow-hidden"
+              className="group bg-white/95 backdrop-blur-sm rounded-3xl shadow-xl border border-rose-100 p-10 hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 relative overflow-hidden"
             >
               {/* Gradient background on hover */}
               <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-5 transition-opacity duration-500`}></div>
@@ -63,7 +57,7 @@ export default function FeaturesSection() {
                 </div>
 
                 {/* Content */}
-                <h3 className="font-heading text-2xl mb-5 text-gray-900 group-hover:text-blue-700">
+                <h3 className="font-heading text-2xl mb-5 text-gray-900 group-hover:text-rose-700">
                   {feature.title}
                 </h3>
                 <p className="font-body text-lg mb-8 text-gray-600">

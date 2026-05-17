@@ -295,7 +295,7 @@ export default function Signup() {
               <Route className="text-white text-xl" />
             </div>
             <span className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              Move-O-Matic
+              Planora
             </span>
           </Link>
           

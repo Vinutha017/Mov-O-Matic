@@ -939,7 +939,7 @@ Important: Return ONLY the JSON with exactly ${actualDuration} day objects, no o
       .map((entry) => `${entry.role.toUpperCase()}: ${entry.content}`)
       .join('\n');
 
-    const systemPrompt = `You are MOV-O-MATIC's AI trip assistant. Give concise, helpful travel advice.
+    const systemPrompt = `You are Planora's AI trip assistant. Give concise, helpful travel advice.
 
 Rules:
 - Use only the trip context provided.

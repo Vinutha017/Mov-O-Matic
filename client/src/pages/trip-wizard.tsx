@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 
 export default function TripWizard() {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-rose-50">
       <Header />
       
       <div className="travel-container py-8">
@@ -17,7 +17,7 @@ export default function TripWizard() {
               Back to Home
             </Button>
           </Link>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Plan Your Perfect India Trip</h1>
+          <h1 className="text-3xl font-bold text-rose-900 mb-2">Plan Your Perfect India Trip</h1>
           <p className="text-gray-600">Discover the incredible diversity of India - tell us your preferences and we'll create a personalized itinerary</p>
         </div>
         

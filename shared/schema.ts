@@ -113,6 +113,76 @@ export const weatherAlerts = pgTable("weather_alerts", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const bookingQuotes = pgTable("booking_quotes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  bookingId: varchar("booking_id").references(() => bookings.id),
+  providerType: text("provider_type").notNull(),
+  providerName: text("provider_name").notNull(),
+  searchKey: text("search_key").notNull(),
+  title: text("title").notNull(),
+  description: text("description"),
+  totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
+  currency: text("currency").default("INR"),
+  travelers: integer("travelers").default(1),
+  expiresAt: timestamp("expires_at"),
+  providerPayload: jsonb("provider_payload"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const bookings = pgTable("bookings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id),
+  tripId: varchar("trip_id").references(() => trips.id),
+  quoteId: varchar("quote_id").references(() => bookingQuotes.id),
+  providerType: text("provider_type").notNull(),
+  providerName: text("provider_name").notNull(),
+  providerReservationId: text("provider_reservation_id"),
+  bookingReference: text("booking_reference"),
+  status: text("status").default("draft"),
+  startDate: timestamp("start_date"),
+  endDate: timestamp("end_date"),
+  travelDate: timestamp("travel_date"),
+  travelers: integer("travelers").default(1),
+  totalAmount: decimal("total_amount", { precision: 10, scale: 2 }),
+  currency: text("currency").default("INR"),
+  holdExpiresAt: timestamp("hold_expires_at"),
+  contactDetails: jsonb("contact_details"),
+  providerPayload: jsonb("provider_payload"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const payments = pgTable("payments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  bookingId: varchar("booking_id").references(() => bookings.id).notNull(),
+  provider: text("provider").notNull(),
+  providerPaymentId: text("provider_payment_id"),
+  status: text("status").default("initiated"),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  currency: text("currency").default("INR"),
+  method: text("method"),
+  idempotencyKey: text("idempotency_key").unique(),
+  metadata: jsonb("metadata"),
+  authorizedAt: timestamp("authorized_at"),
+  capturedAt: timestamp("captured_at"),
+  refundedAt: timestamp("refunded_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const availabilitySnapshots = pgTable("availability_snapshots", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  providerType: text("provider_type").notNull(),
+  providerName: text("provider_name").notNull(),
+  searchKey: text("search_key").notNull(),
+  status: text("status").default("available"),
+  payload: jsonb("payload"),
+  fetchedAt: timestamp("fetched_at").defaultNow(),
+  expiresAt: timestamp("expires_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -150,6 +220,29 @@ export const insertWeatherAlertSchema = createInsertSchema(weatherAlerts).omit({
   createdAt: true,
 });
 
+export const insertBookingQuoteSchema = createInsertSchema(bookingQuotes).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertBookingSchema = createInsertSchema(bookings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertPaymentSchema = createInsertSchema(payments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertAvailabilitySnapshotSchema = createInsertSchema(availabilitySnapshots).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -174,6 +267,18 @@ export type InsertExpense = z.infer<typeof insertExpenseSchema>;
 
 export type WeatherAlert = typeof weatherAlerts.$inferSelect;
 export type InsertWeatherAlert = z.infer<typeof insertWeatherAlertSchema>;
+
+export type BookingQuote = typeof bookingQuotes.$inferSelect;
+export type InsertBookingQuote = z.infer<typeof insertBookingQuoteSchema>;
+
+export type Booking = typeof bookings.$inferSelect;
+export type InsertBooking = z.infer<typeof insertBookingSchema>;
+
+export type Payment = typeof payments.$inferSelect;
+export type InsertPayment = z.infer<typeof insertPaymentSchema>;
+
+export type AvailabilitySnapshot = typeof availabilitySnapshots.$inferSelect;
+export type InsertAvailabilitySnapshot = z.infer<typeof insertAvailabilitySnapshotSchema>;
 
 // Complex types
 export interface TripWithDetails extends Trip {
@@ -290,4 +395,23 @@ export interface AITripAssistantResponse {
   reply: string;
   suggestions: string[];
   contextUsed: string[];
+}
+
+export interface RecommendationCard {
+  id: string;
+  title: string;
+  description: string;
+  score: number;
+  reason: string;
+  category: 'hotel' | 'activity' | 'restaurant' | 'destination';
+  metadata?: Record<string, unknown>;
+}
+
+export interface TripRecommendationResponse {
+  hotels: RecommendationCard[];
+  activities: RecommendationCard[];
+  restaurants: RecommendationCard[];
+  destinations: RecommendationCard[];
+  seasonalTips: string[];
+  summary: string;
 }

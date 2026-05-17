@@ -1,4 +1,4 @@
-import { Sparkles, Brain, Settings, MessageSquare, MapPin, Calendar, DollarSign, Users, Share2, Clock, Star, ArrowRight } from "lucide-react";
+import { Sparkles, Brain, Settings, MessageSquare, MapPin, Calendar, DollarSign, Users, Clock, Star, ArrowRight } from "lucide-react";
 import { Link } from "wouter";
 
 interface ItineraryItem {
@@ -64,7 +64,7 @@ const steps = [
   {
     number: 3,
     title: "Track Your India Trip Budget",
-    description: "Monitor your India travel budget in Indian Rupees, track local expenses, and share your amazing itinerary with family and friends.",
+    description: "Monitor your India travel budget in Indian Rupees and track local expenses.",
     icon: Settings,
     color: "from-green-500 to-teal-600",
     preview: {
@@ -76,7 +76,7 @@ const steps = [
         { item: "Local Food & Restaurants", amount: 3500 },
         { item: "Activities & Sightseeing", amount: 3500 }
       ],
-      features: ["Indian Rupee tracking", "Local expense categories", "Share India adventures"]
+      features: ["Indian Rupee tracking", "Local expense categories", "Explore India adventures"]
     }
   }
 ];
@@ -327,7 +327,7 @@ export default function HowItWorks() {
               Ready to Experience This Magic?
             </h3>
             <p className="text-gray-600 dark:text-gray-300 mb-6 text-lg">
-              Join thousands of travelers who trust Move-O-Matic for their perfect trips
+              Join thousands of travelers who trust Planora for their perfect trips
             </p>
             <Link href="/signup">
               <button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium px-10 py-4 rounded-xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 group text-lg">

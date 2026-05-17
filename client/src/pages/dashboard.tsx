@@ -4,7 +4,7 @@ import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { useAuth } from '../contexts/AuthContext';
-import { getUserTrips } from '../lib/firebaseService';
+import { getUserTrips, type Trip } from '../lib/firebaseService';
 import Header from '../components/header';
 import { 
   Plus,
@@ -23,6 +23,7 @@ export default function Dashboard() {
   const { currentUser, userProfile, logout, refreshUserProfile } = useAuth();
   const userName = userProfile?.displayName?.split(' ')[0] || currentUser?.displayName?.split(' ')[0] || 'Traveler';
   const [tripsPlanned, setTripsPlanned] = useState(0);
+  const [trips, setTrips] = useState<Trip[]>([]);
   const [loadingStats, setLoadingStats] = useState(true);
   const [profileStatus, setProfileStatus] = useState('Incomplete');
 
@@ -60,6 +61,7 @@ export default function Dashboard() {
         console.log('📋 Trip details:', userTrips);
         
         setTripsPlanned(userTrips.length);
+        setTrips(userTrips);
         
         // Debug userProfile data
         console.log('🔍 Dashboard: User profile data:', userProfile);
@@ -160,7 +162,6 @@ export default function Dashboard() {
             </Card>
           </Link>
 
-
         </div>
 
         {/* Main Content Grid */}
@@ -171,59 +172,40 @@ export default function Dashboard() {
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <Clock className="w-5 h-5 text-blue-600" />
-                  <span>Getting Started</span>
+                  <span>Your Trips</span>
                 </CardTitle>
                 <CardDescription>
-                  Here are some steps to help you begin your travel planning journey
+                  All planned trips for your account
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-start space-x-4 p-4 bg-blue-50 rounded-lg">
-                    <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
-                      <span className="text-white font-semibold text-sm">1</span>
-                    </div>
-                    <div>
-                      <h4 className="font-medium text-gray-900">Complete your profile</h4>
-                      <p className="text-gray-600 text-sm">Add your travel preferences and personal information</p>
-                      <Link href="/profile">
-                        <Button variant="link" className="p-0 h-auto text-blue-600">
-                          Go to Profile →
-                        </Button>
-                      </Link>
-                    </div>
+                {loadingStats ? (
+                  <div className="flex items-center justify-center py-4">
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-600"></div>
+                    <span className="ml-2 text-gray-600 text-sm">Loading...</span>
                   </div>
-
-                  <div className="flex items-start space-x-4 p-4 bg-green-50 rounded-lg">
-                    <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
-                      <span className="text-white font-semibold text-sm">2</span>
-                    </div>
-                    <div>
-                      <h4 className="font-medium text-gray-900">Plan your first trip</h4>
-                      <p className="text-gray-600 text-sm">Use our Trip Wizard to create a personalized itinerary</p>
-                      <Link href="/trip-wizard">
-                        <Button variant="link" className="p-0 h-auto text-green-600">
-                          Start Planning →
-                        </Button>
-                      </Link>
-                    </div>
+                ) : trips.length === 0 ? (
+                  <div className="text-gray-600">You have no planned trips yet. Start by creating one.</div>
+                ) : (
+                  <div className="space-y-4">
+                    {trips.map((trip) => (
+                      <div key={trip.id} className="p-4 border rounded-lg flex items-start justify-between">
+                        <div>
+                          <h4 className="text-lg font-semibold text-gray-900">{trip.title}</h4>
+                          <div className="text-sm text-gray-600">{trip.destination} • {trip.travelers} {trip.travelers === 1 ? 'traveler' : 'travelers'}</div>
+                          <div className="text-sm text-gray-500 mt-1">{new Date(trip.startDate as any).toLocaleDateString()} — {new Date(trip.endDate as any).toLocaleDateString()}</div>
+                          {trip.budget != null && <div className="text-sm text-gray-700 mt-1">Budget: ₹{(trip.budget as any).toLocaleString()}</div>}
+                        </div>
+                        <div className="flex flex-col items-end">
+                          <span className={`text-xs px-2 py-1 rounded-full ${trip.status === 'planning' ? 'bg-yellow-100 text-yellow-800' : trip.status === 'confirmed' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>{trip.status}</span>
+                          <Link href={`/trip/${trip.id}`}>
+                            <Button className="mt-3">View</Button>
+                          </Link>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-
-                  <div className="flex items-start space-x-4 p-4 bg-purple-50 rounded-lg">
-                    <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center flex-shrink-0">
-                      <span className="text-white font-semibold text-sm">3</span>
-                    </div>
-                    <div>
-                      <h4 className="font-medium text-gray-900">Manage Your Profile</h4>
-                      <p className="text-gray-600 text-sm">Update your travel preferences and personal information</p>
-                      <Link href="/profile">
-                        <Button variant="link" className="p-0 h-auto text-purple-600">
-                          Go to Profile →
-                        </Button>
-                      </Link>
-                    </div>
-                  </div>
-                </div>
+                )}
               </CardContent>
             </Card>
           </div>

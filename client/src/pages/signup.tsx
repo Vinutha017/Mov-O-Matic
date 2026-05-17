@@ -145,7 +145,7 @@ export default function Signup() {
       
       toast({
         title: "Account Created Successfully",
-        description: "Welcome to Mov-O-Matic! You can now explore all our features.",
+        description: "Welcome to Planora! You can now explore all our features.",
       });
       
       // Redirect new users to welcome page
@@ -175,7 +175,7 @@ export default function Signup() {
       await signInWithGoogle();
       toast({
         title: "Account Created Successfully",
-        description: "Welcome to Mov-O-Matic! Let's plan your first trip.",
+        description: "Welcome to Planora! Let's plan your first trip.",
       });
       setLocation('/welcome');
     } catch (error: any) {
@@ -217,7 +217,7 @@ export default function Signup() {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl mb-4 shadow-lg">
             <Sparkles className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Join Mov-O-Matic</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Join Planora</h1>
           <p className="text-gray-600">Start your travel planning journey today</p>
         </div>
 

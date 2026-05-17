@@ -27,18 +27,6 @@ export interface WeatherAlert {
   message: string;
 }
 
-// Convert coordinates to timezone for accurate forecasts
-const LOCATION_TIMEZONES: Record<string, string> = {
-  "Mumbai": "Asia/Kolkata",
-  "Delhi": "Asia/Kolkata",
-  "Bangalore": "Asia/Kolkata",
-  "Goa": "Asia/Kolkata",
-  "Jaipur": "Asia/Kolkata",
-  "Udaipur": "Asia/Kolkata",
-  "Kerala": "Asia/Kolkata",
-  "Himachal Pradesh": "Asia/Kolkata",
-};
-
 export class WeatherService {
   private apiKey: string;
   private baseUrl = "https://api.openweathermap.org/data/2.5";
@@ -63,13 +51,13 @@ export class WeatherService {
         return this.generateMockForecasts(destination, startDate, endDate);
       }
 
-      // If we have coordinates, use them; otherwise use default Indian city coords
-      const { lat, lon } = latitude && longitude 
-        ? { lat: latitude, lon: longitude }
-        : this.getCoordinatesForDestination(destination);
+      const resolvedLocation =
+        latitude !== undefined && longitude !== undefined
+          ? { lat: latitude, lon: longitude, name: destination }
+          : (await this.resolveDestinationCoordinates(destination)) || this.getCoordinatesForDestination(destination);
 
       // Fetch current and forecast data
-      const forecastUrl = `${this.baseUrl}/forecast?lat=${lat}&lon=${lon}&appid=${this.apiKey}&units=metric`;
+      const forecastUrl = `${this.baseUrl}/forecast?lat=${resolvedLocation.lat}&lon=${resolvedLocation.lon}&appid=${this.apiKey}&units=metric`;
       const response = await fetch(forecastUrl);
       
       if (!response.ok) {
@@ -78,10 +66,43 @@ export class WeatherService {
       }
 
       const data = await response.json();
-      return this.parseForecastData(data, destination, startDate, endDate);
+      return this.parseForecastData(data, resolvedLocation.name || destination, startDate, endDate);
     } catch (error) {
       console.error("Weather service error:", error);
       return this.generateMockForecasts(destination, startDate, endDate);
+    }
+  }
+
+  /**
+   * Resolve a destination name to coordinates using OpenWeatherMap geocoding.
+   */
+  private async resolveDestinationCoordinates(destination: string): Promise<{ lat: number; lon: number; name: string } | null> {
+    try {
+      const query = encodeURIComponent(destination.trim());
+      const geocodeUrl = `https://api.openweathermap.org/geo/1.0/direct?q=${query}&limit=1&appid=${this.apiKey}`;
+      const response = await fetch(geocodeUrl);
+
+      if (!response.ok) {
+        console.warn(`Weather geocoding failed for ${destination}: ${response.status}`);
+        return null;
+      }
+
+      const results = (await response.json()) as Array<{ lat: number; lon: number; name?: string; state?: string; country?: string }>;
+      const match = results[0];
+
+      if (!match) {
+        return null;
+      }
+
+      const labelParts = [match.name, match.state, match.country].filter(Boolean);
+      return {
+        lat: match.lat,
+        lon: match.lon,
+        name: labelParts.join(", ") || destination,
+      };
+    } catch (error) {
+      console.warn(`Weather geocoding error for ${destination}:`, error);
+      return null;
     }
   }
 

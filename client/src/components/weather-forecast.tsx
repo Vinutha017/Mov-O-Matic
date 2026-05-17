@@ -1,7 +1,9 @@
+import { useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { AlertCircle, Cloud, CloudRain, Sun, Wind, Droplets, Eye } from "lucide-react";
 import { Alert, AlertDescription } from "./ui/alert";
+import { notify } from "@/hooks/use-notifications";
 
 interface WeatherForecast {
   date: string;
@@ -43,6 +45,7 @@ export function WeatherForecast({
   endDate,
   isLoading: isLoadingProp,
 }: WeatherForecastProps) {
+  const lastNotificationKeyRef = useRef<string>("");
   const { data, isLoading, error } = useQuery({
     queryKey: ["weatherForecast", destination, startDate, endDate],
     queryFn: async () => {
@@ -61,6 +64,34 @@ export function WeatherForecast({
 
   const forecasts = data?.forecast || [];
   const isLoaderActive = isLoading || isLoadingProp;
+
+  useEffect(() => {
+    if (!forecasts.length || !destination || !startDate || !endDate) {
+      return;
+    }
+
+    const notificationKey = `${destination}-${startDate}-${endDate}-${forecasts
+      .map((forecast: WeatherForecast) => `${forecast.date}:${forecast.alerts?.length || 0}`)
+      .join('|')}`;
+
+    if (lastNotificationKeyRef.current === notificationKey) {
+      return;
+    }
+
+    lastNotificationKeyRef.current = notificationKey;
+
+    forecasts.forEach((forecast: WeatherForecast) => {
+      const severeAlerts = (forecast.alerts || []).filter((alert) => alert.severity !== 'low');
+
+      severeAlerts.forEach((alert) => {
+        notify({
+          title: `${forecast.location} weather alert`,
+          description: `${forecast.date}: ${alert.message}`,
+          type: 'weather',
+        });
+      });
+    });
+  }, [destination, endDate, forecasts, startDate]);
 
   if (!destination || !startDate || !endDate) {
     return null;
@@ -117,6 +148,19 @@ export function WeatherForecast({
     }
   };
 
+  const formatForecastDate = (dateValue: string) => {
+    const parsedDate = new Date(`${dateValue}T00:00:00`);
+    if (Number.isNaN(parsedDate.getTime())) {
+      return dateValue;
+    }
+
+    return parsedDate.toLocaleDateString("en-IN", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+    });
+  };
+
   return (
     <div className="space-y-4">
       <div className="grid gap-4">
@@ -142,11 +186,7 @@ export function WeatherForecast({
                 <div className="flex items-start justify-between">
                   <div>
                     <CardTitle className="text-lg">
-                      {new Date(forecast.date).toLocaleDateString("en-IN", {
-                        weekday: "short",
-                        month: "short",
-                        day: "numeric",
-                      })}
+                      {formatForecastDate(forecast.date)}
                     </CardTitle>
                     <CardDescription className="capitalize">{forecast.condition}</CardDescription>
                   </div>
