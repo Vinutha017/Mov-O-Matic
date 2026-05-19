@@ -4,6 +4,16 @@ import { createServer } from "http";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
+function getAllowedOrigins(): string[] {
+  const configuredOrigins = process.env.CORS_ORIGIN || process.env.FRONTEND_URL || process.env.VITE_APP_PUBLIC_URL;
+  if (!configuredOrigins) return [];
+  return configuredOrigins
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean)
+    .map((origin) => origin.replace(/\/$/, ""));
+}
+
 // Debug environment variables
 console.log('🔧 Environment Variables Debug:');
 console.log('NODE_ENV:', process.env.NODE_ENV);
@@ -16,6 +26,28 @@ const port = parseInt(process.env.PORT || '3001', 10);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+app.use((req, res, next) => {
+  const allowedOrigins = getAllowedOrigins();
+  const requestOrigin = req.headers.origin;
+
+  if (requestOrigin) {
+    const requestOriginNormalized = requestOrigin.replace(/\/$/, "");
+    if (allowedOrigins.length === 0 || allowedOrigins.includes(requestOriginNormalized)) {
+      res.setHeader("Access-Control-Allow-Origin", requestOrigin);
+      res.setHeader("Vary", "Origin");
+      res.setHeader("Access-Control-Allow-Credentials", "true");
+      res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+      res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
+    }
+  }
+
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(204);
+  }
+
+  next();
+});
 
 app.use((req, res, next) => {
   res.setHeader('X-Powered-By', 'Planora');

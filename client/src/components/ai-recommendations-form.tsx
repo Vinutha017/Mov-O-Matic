@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Sparkles, MapPin, Star, Wifi, Car, Utensils, Droplets, Heart, Lightbulb, Clock, DollarSign } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { apiUrl } from "@/lib/queryClient";
 import type { Hotel } from "@shared/schema";
 
 interface RecommendationForm {
@@ -73,7 +74,7 @@ export default function AIRecommendationsForm() {
 
   const recommendationsMutation = useMutation({
     mutationFn: async (data: RecommendationForm) => {
-      const response = await fetch("/api/ai/hotel-recommendations", {
+      const response = await fetch(apiUrl("/api/ai/hotel-recommendations"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),

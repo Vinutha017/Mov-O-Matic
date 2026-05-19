@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, ArrowRight, Building2, Compass, Loader2, MapPinned, Utensils } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { apiUrl } from "@/lib/queryClient";
 import type { TripRecommendationResponse, RecommendationCard } from "@shared/schema";
 import type { Trip } from "@/lib/firebaseService";
 
@@ -170,7 +171,7 @@ export default function TripRecommendations({ tripId, trip, destination, travelS
         throw new Error("Trip ID is required");
       }
 
-      const response = await fetch(`/api/recommendations/${tripId}`);
+      const response = await fetch(apiUrl(`/api/recommendations/${tripId}`));
       if (!response.ok) {
         throw new Error("Failed to fetch recommendations");
       }

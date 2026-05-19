@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ChevronDown, MapPin, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { apiUrl } from '@/lib/queryClient';
 
 interface Prediction {
   description: string;
@@ -63,7 +64,7 @@ export default function PlacesAutocomplete({
 
       try {
         setIsSearching(true);
-        const res = await fetch(`/api/places/autocomplete?input=${encodeURIComponent(input)}`);
+        const res = await fetch(apiUrl(`/api/places/autocomplete?input=${encodeURIComponent(input)}`));
         if (!res.ok) {
           setPredictions([]);
           setIsOpen(false);

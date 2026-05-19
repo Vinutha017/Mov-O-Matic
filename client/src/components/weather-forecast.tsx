@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/
 import { AlertCircle, Cloud, CloudRain, Sun, Wind, Droplets, Eye } from "lucide-react";
 import { Alert, AlertDescription } from "./ui/alert";
 import { notify } from "@/hooks/use-notifications";
+import { apiUrl } from "@/lib/queryClient";
 
 interface WeatherForecast {
   date: string;
@@ -55,7 +56,7 @@ export function WeatherForecast({
         startDate,
         endDate,
       });
-      const res = await fetch(`/api/weather/forecast?${params}`);
+      const res = await fetch(apiUrl(`/api/weather/forecast?${params}`));
       if (!res.ok) throw new Error("Failed to fetch weather");
       return res.json();
     },

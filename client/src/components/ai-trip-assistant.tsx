@@ -3,6 +3,7 @@ import { MessageSquare, Sparkles, Send, X, Bot, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { apiUrl } from "@/lib/queryClient";
 import type { AITripAssistantMessage } from "@shared/schema";
 
 type TripAssistantContext = {
@@ -78,7 +79,7 @@ export default function AITripAssistant({ tripContext }: AITripAssistantProps) {
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/ai/trip-assistant", {
+      const response = await fetch(apiUrl("/api/ai/trip-assistant"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
