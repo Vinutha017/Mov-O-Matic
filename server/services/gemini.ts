@@ -196,6 +196,37 @@ Only include items that are truly NOT available or unsuitable for ${request.dest
         ])
       : [[], [], []];
 
+    console.log("[Gemini][Places] fetched counts:", {
+      hotels: realHotels.length,
+      attractions: realAttractions.length,
+      restaurants: realRestaurants.length,
+      destination,
+    });
+
+    console.log("[Gemini][Places] raw hotels:", JSON.stringify(realHotels, null, 2));
+    console.log("[Gemini][Places] raw attractions:", JSON.stringify(realAttractions, null, 2));
+    console.log("[Gemini][Places] raw restaurants:", JSON.stringify(realRestaurants, null, 2));
+
+    if (realHotels.length === 0 || realAttractions.length === 0) {
+      console.warn("[Gemini][Places] required place lists are empty; returning safe fallback structure without Gemini prompt");
+      const safeRestaurants = realRestaurants.length > 0 ? realRestaurants : [];
+      return {
+        hotels: [],
+        attractions: [],
+        restaurants: safeRestaurants,
+        itinerary: [],
+        totalEstimatedCost: request.budget || 0,
+        tips: ["Google Places did not return enough results for this destination."],
+        destinationCompatibility: {
+          unavailableInterests: [],
+          unavailableFoods: [],
+          unavailableActivities: [],
+          alternativeSuggestions: [],
+          compatibilityNote: "Places API returned too few results to generate a full itinerary.",
+        },
+      };
+    }
+
     const hotelsContext = realHotels.slice(0, 6).map((hotel) =>
       `- ${hotel.name} | ${hotel.address || hotel.location} | rating ${hotel.rating || "N/A"}`,
     ).join("\n");
@@ -625,6 +656,11 @@ Important: Return ONLY the JSON with exactly ${actualDuration} day objects, no o
           request.budget,
         );
       }
+
+      console.log("[Gemini][Response] transformed hotels:", JSON.stringify(validatedResponse.hotels, null, 2));
+      console.log("[Gemini][Response] transformed attractions:", JSON.stringify(validatedResponse.attractions, null, 2));
+      console.log("[Gemini][Response] transformed restaurants:", JSON.stringify(validatedResponse.restaurants, null, 2));
+      console.log("[Gemini][Response] transformed itinerary:", JSON.stringify(validatedResponse.itinerary, null, 2));
       
       return validatedResponse;
       

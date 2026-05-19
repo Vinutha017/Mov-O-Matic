@@ -3,6 +3,7 @@ import { ChevronDown, MapPin, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { apiUrl } from '@/lib/queryClient';
+import { indianCities } from '@/lib/indianCities';
 
 interface Prediction {
   description: string;
@@ -54,6 +55,19 @@ export default function PlacesAutocomplete({
   const doSearchRef = useRef<any>(null);
   const rootRef = useRef<HTMLDivElement>(null);
 
+  const getLocalPredictions = (input: string): Prediction[] => {
+    const normalized = input.trim().toLowerCase();
+    if (!normalized) return [];
+
+    return indianCities
+      .filter((city) => `${city.name}, ${city.state}`.toLowerCase().includes(normalized) || city.name.toLowerCase().includes(normalized))
+      .slice(0, 8)
+      .map((city) => ({
+        description: `${city.name}, ${city.state}`,
+        place_id: `local-${city.name.toLowerCase().replace(/\s+/g, '-')}`,
+      }));
+  };
+
   useEffect(() => {
     doSearchRef.current = localDebounce(async (input: string) => {
       if (!input) {
@@ -62,23 +76,45 @@ export default function PlacesAutocomplete({
         return;
       }
 
+      const localPredictions = getLocalPredictions(input);
+      if (localPredictions.length > 0) {
+        setPredictions(localPredictions);
+        setIsOpen(true);
+      }
+
       try {
         setIsSearching(true);
         const res = await fetch(apiUrl(`/api/places/autocomplete?input=${encodeURIComponent(input)}`));
         if (!res.ok) {
-          setPredictions([]);
-          setIsOpen(false);
+          if (localPredictions.length === 0) {
+            setPredictions([]);
+            setIsOpen(false);
+          }
           return;
         }
         const json = await res.json();
         const preds = json.predictions || [];
-        setPredictions(preds.map((p: any) => ({ description: p.description, place_id: p.place_id })));
-        setIsOpen(preds.length > 0);
+        const serverPredictions = preds.map((p: any) => ({ description: p.description, place_id: p.place_id }));
+        const merged = [...serverPredictions];
+
+        localPredictions.forEach((prediction) => {
+          if (!merged.some((item) => item.description.toLowerCase() === prediction.description.toLowerCase())) {
+            merged.push(prediction);
+          }
+        });
+
+        setPredictions(merged);
+        setIsOpen(merged.length > 0);
         setSelectedIndex(-1);
       } catch (err) {
         console.error('Places proxy error', err);
-        setPredictions([]);
-        setIsOpen(false);
+        if (localPredictions.length > 0) {
+          setPredictions(localPredictions);
+          setIsOpen(true);
+        } else {
+          setPredictions([]);
+          setIsOpen(false);
+        }
       } finally {
         setIsSearching(false);
       }
@@ -162,7 +198,7 @@ export default function PlacesAutocomplete({
             setSelectedIndex(-1);
           }}
           onFocus={() => {
-            if (predictions.length > 0) {
+            if (predictions.length > 0 || query.trim().length > 0) {
               setIsOpen(true);
             }
           }}
@@ -178,7 +214,7 @@ export default function PlacesAutocomplete({
       </div>
 
       {isOpen && !disabled && (
-        <div className="absolute z-50 left-0 right-0 mt-1 max-h-64 overflow-y-auto rounded-b-md border border-t-0 bg-white shadow-lg">
+        <div className="absolute z-[60] left-0 right-0 mt-1 max-h-64 overflow-y-auto rounded-b-md border border-t-0 bg-white shadow-lg">
           {predictions.length > 0 ? (
             predictions.map((p, index) => (
               <button

@@ -6,7 +6,7 @@ const testimonials = [
     name: "Sarah M.",
     location: "Mumbai, India",
     rating: 5.0,
-    content: "Planora planned our entire Kerala trip in under 10 minutes! The AI recommendations were spot-on, and the budget tracking saved us from overspending. Best travel app ever!"
+    content: "Planora planned our entire Kerala trip in under 10 minutes! The AI recommendations were spot-on, and the budget tracking saved us from overspending. Best travel app ever!",
     avatar: "https://images.unsplash.com/photo-1494790108755-2616b612b786?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&h=150",
     trip: "Kerala Backwaters"
   },
@@ -24,7 +24,7 @@ const testimonials = [
     name: "Priya S.",
     location: "Delhi, India",
     rating: 5.0,
-    content: "As a family of 5, planning trips was always stressful. Planora considered everyone's interests and created an itinerary that made everyone happy. The kids loved the interactive features!"
+    content: "As a family of 5, planning trips was always stressful. Planora considered everyone's interests and created an itinerary that made everyone happy. The kids loved the interactive features!",
     avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&h=150",
     trip: "Family Trip to Rajasthan"
   }
