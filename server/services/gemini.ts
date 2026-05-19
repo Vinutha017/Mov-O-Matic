@@ -613,6 +613,18 @@ Important: Return ONLY the JSON with exactly ${actualDuration} day objects, no o
       if (!Array.isArray(validatedResponse.restaurants) || validatedResponse.restaurants.length === 0) {
         validatedResponse.restaurants = realRestaurants;
       }
+
+      const itineraryHasActivities = Array.isArray(validatedResponse.itinerary)
+        && validatedResponse.itinerary.some((day: any) => Array.isArray(day?.activities) && day.activities.length > 0);
+
+      if (!itineraryHasActivities) {
+        validatedResponse.itinerary = this.buildItineraryFromCatalog(
+          actualDuration,
+          validatedResponse.attractions,
+          validatedResponse.restaurants,
+          request.budget,
+        );
+      }
       
       return validatedResponse;
       
@@ -695,6 +707,38 @@ Important: Return ONLY the JSON with exactly ${actualDuration} day objects, no o
         coordinates: matched.coordinates || activity.coordinates,
         category: activity.category || matched.category,
         notes: activity.notes || matched.notes,
+      };
+    });
+  }
+
+  private buildItineraryFromCatalog(
+    duration: number,
+    attractions: Activity[],
+    restaurants: Activity[],
+    budget?: number,
+  ): AIRecommendation["itinerary"] {
+    const safeDuration = Math.max(1, duration || 1);
+    const pool = [...attractions, ...restaurants];
+    const perDay = 4;
+    const fallbackDailyBudget = Math.max(400, Math.round((budget || 5000) / safeDuration));
+
+    return Array.from({ length: safeDuration }, (_, idx) => {
+      const day = idx + 1;
+      const dayItems = pool.slice(idx * perDay, idx * perDay + perDay).map((item, itemIndex) => ({
+        ...item,
+        id: item.id || `day-${day}-activity-${itemIndex + 1}`,
+        dayId: item.dayId || "",
+        sortOrder: item.sortOrder ?? itemIndex,
+        duration: item.duration || (item.category === "restaurant" ? 75 : 120),
+        cost: item.cost || String(Math.round(fallbackDailyBudget * 0.18)),
+      }));
+
+      const estimatedCost = dayItems.reduce((sum, activity) => sum + (Number(activity.cost || 0) || 0), 0);
+
+      return {
+        day,
+        activities: dayItems,
+        estimatedCost,
       };
     });
   }
