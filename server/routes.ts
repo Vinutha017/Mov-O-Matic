@@ -13,8 +13,26 @@ type CityEntry = { name: string; state: string };
 
 async function loadFallbackCities(): Promise<CityEntry[]> {
   try {
-    const filePath = path.join(process.cwd(), "public", "indianCities.json");
-    const raw = await readFile(filePath, "utf-8");
+    const fileCandidates = [
+      path.join(process.cwd(), "dist", "public", "indianCities.json"),
+      path.join(process.cwd(), "public", "indianCities.json"),
+    ];
+
+    let raw: string | undefined;
+
+    for (const filePath of fileCandidates) {
+      try {
+        raw = await readFile(filePath, "utf-8");
+        break;
+      } catch {
+        continue;
+      }
+    }
+
+    if (!raw) {
+      throw new Error("indianCities.json was not found in dist/public or public");
+    }
+
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? parsed : [];
   } catch (error) {
