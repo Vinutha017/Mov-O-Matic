@@ -386,14 +386,16 @@ export default function Itinerary() {
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="planning" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-6 lg:w-full print-hidden">
-                <TabsTrigger value="planning">Planning Details</TabsTrigger>
-                <TabsTrigger value="preferences">Preferences</TabsTrigger>
-                <TabsTrigger value="itinerary">Itinerary</TabsTrigger>
-                <TabsTrigger value="weather">Weather</TabsTrigger>
-                <TabsTrigger value="recommendations">Recommendations</TabsTrigger>
-                <TabsTrigger value="map">Map</TabsTrigger>
-              </TabsList>
+              <div className="print-hidden">
+                <TabsList className="flex w-full gap-1 overflow-x-auto whitespace-nowrap p-1 sm:gap-2 md:grid md:grid-cols-6 md:overflow-visible md:whitespace-normal">
+                  <TabsTrigger value="planning" className="shrink-0 px-3 py-2 text-xs sm:text-sm md:w-full">Planning Details</TabsTrigger>
+                  <TabsTrigger value="preferences" className="shrink-0 px-3 py-2 text-xs sm:text-sm md:w-full">Preferences</TabsTrigger>
+                  <TabsTrigger value="itinerary" className="shrink-0 px-3 py-2 text-xs sm:text-sm md:w-full">Itinerary</TabsTrigger>
+                  <TabsTrigger value="weather" className="shrink-0 px-3 py-2 text-xs sm:text-sm md:w-full">Weather</TabsTrigger>
+                  <TabsTrigger value="recommendations" className="shrink-0 px-3 py-2 text-xs sm:text-sm md:w-full">Recommendations</TabsTrigger>
+                  <TabsTrigger value="map" className="shrink-0 px-3 py-2 text-xs sm:text-sm md:w-full">Map</TabsTrigger>
+                </TabsList>
+              </div>
 
               <TabsContent value="planning">
                 <div className="space-y-6">
