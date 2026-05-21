@@ -1,6 +1,4 @@
 import type { Express } from "express";
-import { readFile } from "fs/promises";
-import path from "path";
 import { storage } from "./storage";
 import { aiTravelPlanner } from "./services/gemini";
 import { getPersonalizedRecommendations } from "./services/recommendation-engine";
@@ -8,38 +6,6 @@ import { registerBookingRoutes } from "./modules/bookings/booking.routes";
 import { insertTripSchema, insertItineraryDaySchema, insertActivitySchema, insertExpenseSchema, type AITripRequest, type AITripAssistantRequest } from "@shared/schema";
 import { z } from "zod";
 import { weatherService } from "./services/weather";
-
-type CityEntry = { name: string; state: string };
-
-async function loadFallbackCities(): Promise<CityEntry[]> {
-  try {
-    const fileCandidates = [
-      path.join(process.cwd(), "dist", "public", "indianCities.json"),
-      path.join(process.cwd(), "public", "indianCities.json"),
-    ];
-
-    let raw: string | undefined;
-
-    for (const filePath of fileCandidates) {
-      try {
-        raw = await readFile(filePath, "utf-8");
-        break;
-      } catch {
-        continue;
-      }
-    }
-
-    if (!raw) {
-      throw new Error("indianCities.json was not found in dist/public or public");
-    }
-
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch (error) {
-    console.warn("Unable to load fallback cities:", error);
-    return [];
-  }
-}
 
 export async function registerRoutes(app: Express): Promise<void> {
   await registerBookingRoutes(app);
@@ -338,30 +304,45 @@ export async function registerRoutes(app: Express): Promise<void> {
       const mapsKey = process.env.GOOGLE_MAPS_API_KEY || process.env.VITE_GOOGLE_MAPS_API_KEY;
       if (!mapsKey) return res.status(500).json({ message: 'Google Maps API key not configured on server' });
 
-      const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(input)}&components=country:in&key=${mapsKey}`;
-      const r = await fetch(url);
-      const json = await r.json();
+      const body = {
+        textQuery: input,
+        includedType: 'locality',
+        regionCode: 'in',
+      };
 
-      if (json?.status === 'REQUEST_DENIED' || !Array.isArray(json?.predictions) || json.predictions.length === 0) {
-        const cities = await loadFallbackCities();
-        const query = input.toLowerCase().trim();
-        const fallbackPredictions = cities
-          .filter((city) => `${city.name}, ${city.state}`.toLowerCase().includes(query) || city.name.toLowerCase().includes(query))
-          .slice(0, 12)
-          .map((city, index) => ({
-            description: `${city.name}, ${city.state}`,
-            place_id: `fallback-${index}-${city.name.toLowerCase().replace(/\s+/g, '-')}`,
-          }));
+      console.log('[Places][autocomplete] request body:', JSON.stringify(body, null, 2));
 
-        return res.json({
-          status: 'OK',
-          predictions: fallbackPredictions,
-          source: 'fallback-cities',
-        });
+      const response = await fetch('https://places.googleapis.com/v1/places:searchText', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': mapsKey,
+          'X-Goog-FieldMask': 'places.displayName,places.formattedAddress,places.id,places.location,places.rating,places.photos',
+        },
+        body: JSON.stringify(body),
+      });
+
+      console.log('[Places][autocomplete] response status:', response.status);
+
+      const json = await response.json();
+      console.log('[Places][autocomplete] response json:', JSON.stringify(json, null, 2));
+
+      if (!response.ok) {
+        console.error('[Places][autocomplete] exact Google error response:', JSON.stringify(json, null, 2));
+        return res.status(response.status).json(json);
       }
 
-      // Forward the Google response (predictions array)
-      return res.json(json);
+      const places = Array.isArray(json?.places) ? json.places : [];
+      console.log('[Places][autocomplete] parsed places count:', places.length);
+
+      return res.json({
+        status: 'OK',
+        source: 'google-places-new',
+        predictions: places.map((place: any) => ({
+          description: place?.displayName?.text || place?.formattedAddress || input,
+          place_id: place?.id || '',
+        })),
+      });
     } catch (error) {
       console.error('Places autocomplete error:', error);
       res.status(500).json({ message: 'Failed to get place predictions' });
@@ -374,13 +355,28 @@ export async function registerRoutes(app: Express): Promise<void> {
       const placeId = req.query.placeId as string | undefined;
       if (!placeId) return res.status(400).json({ result: null });
 
-      const mapsKey = process.env.GOOGLE_MAPS_API_KEY || process.env.VITE_GOOGLE_MAPS_API_KEY;
+      const mapsKey = process.env.GOOGLE_PLACES_API_KEY || process.env.GOOGLE_MAPS_API_KEY || process.env.VITE_GOOGLE_MAPS_API_KEY;
       if (!mapsKey) return res.status(500).json({ message: 'Google Maps API key not configured on server' });
 
-      const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${encodeURIComponent(placeId)}&fields=place_id,name,formatted_address,geometry,address_components&key=${mapsKey}`;
-      const r = await fetch(url);
-      const json = await r.json();
-      return res.json(json);
+      const url = `https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}`;
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': mapsKey,
+          'X-Goog-FieldMask': 'displayName,formattedAddress,location,photos,rating,id',
+        },
+      });
+
+      const json = await response.json();
+      console.log('[Places][details] response status:', response.status);
+      console.log('[Places][details] response json:', JSON.stringify(json, null, 2));
+
+      if (!response.ok) {
+        console.error('[Places][details] exact Google error response:', JSON.stringify(json, null, 2));
+      }
+
+      return res.status(response.status).json(json);
     } catch (error) {
       console.error('Place details error:', error);
       res.status(500).json({ message: 'Failed to get place details' });

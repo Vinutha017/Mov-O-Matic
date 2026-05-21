@@ -207,24 +207,8 @@ Only include items that are truly NOT available or unsuitable for ${request.dest
     console.log("[Gemini][Places] raw attractions:", JSON.stringify(realAttractions, null, 2));
     console.log("[Gemini][Places] raw restaurants:", JSON.stringify(realRestaurants, null, 2));
 
-    if (realHotels.length === 0 || realAttractions.length === 0) {
-      console.warn("[Gemini][Places] required place lists are empty; returning safe fallback structure without Gemini prompt");
-      const safeRestaurants = realRestaurants.length > 0 ? realRestaurants : [];
-      return {
-        hotels: [],
-        attractions: [],
-        restaurants: safeRestaurants,
-        itinerary: [],
-        totalEstimatedCost: request.budget || 0,
-        tips: ["Google Places did not return enough results for this destination."],
-        destinationCompatibility: {
-          unavailableInterests: [],
-          unavailableFoods: [],
-          unavailableActivities: [],
-          alternativeSuggestions: [],
-          compatibilityNote: "Places API returned too few results to generate a full itinerary.",
-        },
-      };
+    if (realHotels.length === 0 || realAttractions.length === 0 || realRestaurants.length === 0) {
+      console.warn("[Gemini][Places] one or more live place lists are empty; continuing with available live data instead of synthetic fallback");
     }
 
     const hotelsContext = realHotels.slice(0, 6).map((hotel) =>
@@ -657,6 +641,13 @@ Important: Return ONLY the JSON with exactly ${actualDuration} day objects, no o
         );
       }
 
+      console.log("[Gemini][Response] parsed counts:", {
+        hotels: Array.isArray(validatedResponse.hotels) ? validatedResponse.hotels.length : 0,
+        attractions: Array.isArray(validatedResponse.attractions) ? validatedResponse.attractions.length : 0,
+        restaurants: Array.isArray(validatedResponse.restaurants) ? validatedResponse.restaurants.length : 0,
+        itineraryDays: Array.isArray(validatedResponse.itinerary) ? validatedResponse.itinerary.length : 0,
+      });
+
       console.log("[Gemini][Response] transformed hotels:", JSON.stringify(validatedResponse.hotels, null, 2));
       console.log("[Gemini][Response] transformed attractions:", JSON.stringify(validatedResponse.attractions, null, 2));
       console.log("[Gemini][Response] transformed restaurants:", JSON.stringify(validatedResponse.restaurants, null, 2));
@@ -669,8 +660,7 @@ Important: Return ONLY the JSON with exactly ${actualDuration} day objects, no o
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       console.error("Error details:", errorMessage);
       
-      // Return mock itinerary if API fails
-      console.log("⚠️ Using mock itinerary - API not configured properly");
+      console.log("⚠️ Gemini request failed; generating itinerary from live Places data and only using mocks if Places also fails");
       return this.generateMockItinerary(request, calculatedDuration, {
         hotels: realHotels,
         attractions: realAttractions,
