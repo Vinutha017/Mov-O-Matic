@@ -13,7 +13,55 @@ import {
   serverTimestamp 
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { User } from 'firebase/auth';
+
+export interface AuthUserLike {
+  uid: string;
+  email: string | null;
+  displayName: string | null;
+  photoURL?: string | null;
+}
+
+const LOCAL_USER_PROFILES_KEY = 'planora-local-user-profiles';
+
+const isBrowser = typeof window !== 'undefined';
+
+const readLocalProfiles = (): Record<string, UserProfile> => {
+  if (!isBrowser) return {};
+
+  try {
+    const stored = window.localStorage.getItem(LOCAL_USER_PROFILES_KEY);
+    if (!stored) return {};
+
+    const parsed = JSON.parse(stored) as Record<string, any>;
+    return Object.fromEntries(
+      Object.entries(parsed).map(([uid, profile]) => [uid, {
+        ...profile,
+        createdAt: profile.createdAt ? new Date(profile.createdAt) : new Date(),
+        updatedAt: profile.updatedAt ? new Date(profile.updatedAt) : new Date(),
+      }])
+    ) as Record<string, UserProfile>;
+  } catch (error) {
+    console.error('Failed to read local user profiles:', error);
+    return {};
+  }
+};
+
+const writeLocalProfiles = (profiles: Record<string, UserProfile>) => {
+  if (!isBrowser) return;
+
+  try {
+    window.localStorage.setItem(LOCAL_USER_PROFILES_KEY, JSON.stringify(profiles));
+  } catch (error) {
+    console.error('Failed to write local user profiles:', error);
+  }
+};
+
+const upsertLocalProfile = (profile: UserProfile) => {
+  const profiles = readLocalProfiles();
+  profiles[profile.uid] = profile;
+  writeLocalProfiles(profiles);
+  return profile;
+};
 
 // User Profile Management
 export interface UserProfile {
@@ -35,7 +83,7 @@ export interface UserProfile {
   updatedAt: Date;
 }
 
-export const createUserProfile = async (user: User, additionalData?: Partial<UserProfile>) => {
+export const createUserProfile = async (user: AuthUserLike, additionalData?: Partial<UserProfile>) => {
   const userRef = doc(db, 'users', user.uid);
   
   try {
@@ -78,7 +126,7 @@ export const createUserProfile = async (user: User, additionalData?: Partial<Use
         console.error('❌ Verification failed: Document not found after creation');
       }
       
-      return userData;
+      return upsertLocalProfile(userData);
     }
     
     return userDoc.data() as UserProfile;
@@ -102,7 +150,20 @@ export const createUserProfile = async (user: User, additionalData?: Partial<Use
       return await getUserProfile(user.uid);
     }
     
-    throw new Error(`Failed to create user profile: ${error.message}`);
+    const localProfile: UserProfile = {
+      uid: user.uid,
+      displayName: user.displayName || '',
+      email: user.email || '',
+      photoURL: user.photoURL || '',
+      firstName: user.displayName?.split(' ')[0] || '',
+      lastName: user.displayName?.split(' ').slice(1).join(' ') || '',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      ...additionalData
+    };
+
+    console.warn('⚠️ Falling back to local profile storage for user:', user.uid);
+    return upsertLocalProfile(localProfile);
   }
 };
 
@@ -115,10 +176,10 @@ export const getUserProfile = async (uid: string): Promise<UserProfile | null> =
       return userDoc.data() as UserProfile;
     }
     
-    return null;
+    return readLocalProfiles()[uid] || null;
   } catch (error) {
     console.error('Error fetching user profile:', error);
-    throw error;
+    return readLocalProfiles()[uid] || null;
   }
 };
 
@@ -131,7 +192,20 @@ export const updateUserProfile = async (uid: string, data: Partial<UserProfile>)
     });
   } catch (error) {
     console.error('Error updating user profile:', error);
-    throw error;
+    const existingProfile = readLocalProfiles()[uid] || {
+      uid,
+      displayName: '',
+      email: '',
+      photoURL: '',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    upsertLocalProfile({
+      ...existingProfile,
+      ...data,
+      updatedAt: new Date(),
+    });
   }
 };
 
