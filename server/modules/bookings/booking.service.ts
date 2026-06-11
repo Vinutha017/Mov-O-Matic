@@ -108,7 +108,7 @@ export async function syncAvailability(input: BookingSearchInput): Promise<Avail
     payload: snapshotPayload,
     fetchedAt: new Date(),
     expiresAt: new Date(Date.now() + 5 * 60 * 1000)
-  });
+  } as any);
 }
 
 export async function createBookingQuote(input: BookingSearchInput): Promise<BookingQuote> {
@@ -116,7 +116,7 @@ export async function createBookingQuote(input: BookingSearchInput): Promise<Boo
   const offers = (snapshot.payload as { offers?: Array<Record<string, unknown>> } | null | undefined)?.offers ?? [];
   const offer = offers[0] ?? null;
 
-  const quote: InsertBookingQuote = {
+  const quote = {
     bookingId: null,
     providerType: input.providerType,
     providerName: input.providerName ?? "Planora Network",
@@ -128,9 +128,9 @@ export async function createBookingQuote(input: BookingSearchInput): Promise<Boo
     travelers: input.travelers,
     expiresAt: offer?.expiresAt ? new Date(String(offer.expiresAt)) : new Date(Date.now() + 15 * 60 * 1000),
     providerPayload: snapshot.payload
-  };
+  } as any;
 
-  return storage.createBookingQuote(quote);
+  return storage.createBookingQuote(quote as any);
 }
 
 export async function createBookingRecord(input: CreateBookingInput): Promise<Booking> {
@@ -145,7 +145,7 @@ export async function createBookingRecord(input: CreateBookingInput): Promise<Bo
     travelers: input.booking.travelers ?? quote?.travelers ?? 1,
     providerPayload: input.booking.providerPayload ?? quote?.providerPayload ?? null,
     holdExpiresAt: input.booking.holdExpiresAt ?? quote?.expiresAt ?? null
-  });
+  } as any);
 }
 
 export async function captureBookingPayment(input: CapturePaymentInput): Promise<{ booking: Booking; payment: Payment }> {

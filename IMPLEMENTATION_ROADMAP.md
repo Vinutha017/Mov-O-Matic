@@ -1,4 +1,4 @@
-# 🚀 MOV-O-MATIC Implementation Roadmap
+# 🚀 Planora Implementation Roadmap
 
 **Timeline:** 3 Phases | **Estimated Duration:** 3-4 months  
 **Priority:** Phase 1 (High Impact) → Phase 2 (Engagement) → Phase 3 (Advanced)
@@ -472,7 +472,7 @@ export default {
 **Step 5: Manifest Example**
 ```json
 {
-  "name": "MOV-O-MATIC",
+  "name": "Planora",
   "short_name": "MOV-O",
   "start_url": "/",
   "display": "standalone",

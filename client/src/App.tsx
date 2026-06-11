@@ -108,7 +108,7 @@ function App() {
       <AuthProvider>
         <TooltipProvider>
           <Toaster />
-          {/* <StickyProfile /> */}
+          <StickyProfile />
           <Router />
         </TooltipProvider>
       </AuthProvider>

@@ -11,21 +11,21 @@ function normalizeText(value: unknown): string {
 }
 
 function extractTripInterests(trip: TripWithDetails | Trip): string[] {
-  const metadataInterests = trip.metadata?.preferences?.activityInterests || [];
-  const recommendationInterests = Array.isArray(trip.preferences)
-    ? trip.preferences
+  const metadataInterests = (trip as any).metadata?.preferences?.activityInterests || [];
+  const recommendationInterests = Array.isArray((trip as any).preferences)
+    ? (trip as any).preferences
     : [];
 
-  const aiInterests = Array.isArray((trip as TripWithDetails).aiRecommendation?.tips)
-    ? (trip as TripWithDetails).aiRecommendation.tips
+  const aiInterests = Array.isArray((trip as any).aiRecommendation?.tips)
+    ? (trip as any).aiRecommendation.tips
     : [];
 
   const interests = [
     ...(metadataInterests || []),
     ...recommendationInterests,
     ...aiInterests,
-    trip.travelStyle,
-    trip.tripType,
+    (trip as any).travelStyle,
+    (trip as any).tripType,
   ]
     .filter(Boolean)
     .map((item) => normalizeText(item))
@@ -216,8 +216,8 @@ export async function getPersonalizedRecommendations(tripId: string): Promise<Tr
   const destinations = await storage.getPopularDestinations(10);
   const tripDays = trip.days || [];
   const dayActivities = tripDays.flatMap((day) => day.activities || []);
-  const aiRecommendedActivities = Array.isArray(trip.aiRecommendation?.itinerary)
-    ? trip.aiRecommendation.itinerary.flatMap((day: any) => Array.isArray(day.activities) ? day.activities : [])
+  const aiRecommendedActivities = Array.isArray((trip as any).aiRecommendation?.itinerary)
+    ? (trip as any).aiRecommendation.itinerary.flatMap((day: any) => Array.isArray(day.activities) ? day.activities : [])
     : [];
 
   const activities = [...dayActivities, ...aiRecommendedActivities].filter((activity): activity is Activity => {
@@ -248,7 +248,7 @@ export async function getPersonalizedRecommendations(tripId: string): Promise<Tr
   try {
     const aiDestinations = await aiTravelPlanner.getDestinationRecommendations({
       destination: trip.destination,
-      travelStyle: trip.travelStyle,
+      travelStyle: (trip as any).travelStyle,
       budget: typeof trip.budget === "string" ? Number(trip.budget) : Number(trip.budget || 0),
       travelers: trip.travelers || 1,
       interests: extractTripInterests(trip),

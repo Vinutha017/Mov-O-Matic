@@ -3,15 +3,15 @@ import { getAuth, connectAuthEmulator, setPersistence, browserLocalPersistence }
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
-// Your web app's Firebase configuration
+// Your web app's Firebase configuration — prefer Vite env vars in deployed environment
 const firebaseConfig = {
-  apiKey: "REDACTED",
-  authDomain: "mov-o-matic.firebaseapp.com",
-  projectId: "mov-o-matic",
-  storageBucket: "mov-o-matic.firebasestorage.app",
-  messagingSenderId: "166612558041",
-  appId: "1:166612558041:web:cc43a3aba9a2fc8e9f9ec8",
-  measurementId: "G-DQPHB0R31B"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "REDACTED",
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "mov-o-matic.firebaseapp.com",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "mov-o-matic",
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "mov-o-matic.firebasestorage.app",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "166612558041",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:166612558041:web:cc43a3aba9a2fc8e9f9ec8",
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || "G-DQPHB0R31B"
 };
 
 // Initialize Firebase

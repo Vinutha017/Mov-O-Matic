@@ -80,6 +80,7 @@ const tripFormSchema = z.object({
   // Transport & Mobility
   transportPreferences: z.array(z.string()).min(1, "At least one transport preference is required"),
   mobilityRequirements: z.string().optional(),
+  travelPace: z.string().optional(),
 
   // Personalization
   accommodationAmenities: z.array(z.string()).optional(),
@@ -248,6 +249,7 @@ export default function TripWizardForm() {
             foodPreferences: data.foodPreferences,
             activityInterests: data.activityTypes,
             tripThemes: [data.tripTheme],
+            travelPace: data.travelPace ?? 'normal',
             localTransportPreference: data.transportPreferences.join(', '),
             aiRecommendations: true,
             specialRequirements: data.specialRequirements,

@@ -1,8 +1,8 @@
-# 🌍 MOV O MATIC - AI-Powered Smart Travel Planner
+# 🌍 Planora - AI-Powered Smart Travel Planner
 
-MOV O MATIC is a comprehensive AI-driven travel planning web application that creates smart, customized itineraries for travelers. The application uses artificial intelligence to generate personalized travel recommendations, manage budgets, and provide real-time updates for optimal trip planning.
+Planora is a comprehensive AI-driven travel planning web application that creates smart, customized itineraries for travelers. The application uses artificial intelligence to generate personalized travel recommendations, manage budgets, and provide real-time updates for optimal trip planning.
 
-![MOV O MATIC](https://img.shields.io/badge/MOV%20O%20MATIC-Travel%20Planner-blue?style=for-the-badge&logo=airplane)
+![Planora](https://img.shields.io/badge/Planora-Travel%20Planner-blue?style=for-the-badge&logo=airplane)
 
 ## Features:
 
@@ -68,8 +68,8 @@ MOV O MATIC is a comprehensive AI-driven travel planning web application that cr
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/YOUR_USERNAME/mov-o-matic-travel-app.git
-   cd mov-o-matic-travel-app
+   git clone https://github.com/YOUR_USERNAME/planora.git
+   cd planora
    ```
 
 2. **Install dependencies:**
@@ -101,7 +101,7 @@ MOV O MATIC is a comprehensive AI-driven travel planning web application that cr
 ## 🗂️ Project Structure
 
 ```
-mov-o-matic/
+planora/
 ├── client/                 # React frontend
 │   ├── src/
 │   │   ├── components/     # Reusable UI components
@@ -159,7 +159,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 📞 Support
 
 If you have any questions or need help, please:
-1. Check the [Issues](https://github.com/YOUR_USERNAME/mov-o-matic-travel-app/issues) section
+1. Check the [Issues](https://github.com/YOUR_USERNAME/planora/issues) section
 2. Create a new issue if your question isn't already answered
 3. Contact the maintainers
 

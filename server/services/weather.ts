@@ -66,7 +66,7 @@ export class WeatherService {
       }
 
       const data = await response.json();
-      return this.parseForecastData(data, resolvedLocation.name || destination, startDate, endDate);
+      return this.parseForecastData(data, (resolvedLocation && (resolvedLocation as any).name) || destination, startDate, endDate);
     } catch (error) {
       console.error("Weather service error:", error);
       return this.generateMockForecasts(destination, startDate, endDate);

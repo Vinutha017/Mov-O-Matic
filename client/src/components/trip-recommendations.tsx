@@ -55,7 +55,7 @@ function buildLocalRecommendations(trip: Trip): TripRecommendationResponse | nul
                 description: activity.location || activity.description || `Day ${day.day || 1}`,
                 score: scoreByIndex(index, 90),
                 reason: activity.notes || activity.description || "Matches your itinerary",
-                category: (activity.category === "restaurant" ? "restaurant" : "activity") as const,
+                category: activity.category === "restaurant" ? ("restaurant" as const) : ("activity" as const),
                 metadata: {
                   category: activity.category,
                   duration: activity.duration,
@@ -82,9 +82,9 @@ function buildLocalRecommendations(trip: Trip): TripRecommendationResponse | nul
         },
       }))
     : activities
-        .filter((item) => item.category === "restaurant")
-        .slice(0, 4)
-        .map((item) => ({ ...item, category: "restaurant" as const }));
+      .filter((item: RecommendationCard) => item.category === "restaurant")
+      .slice(0, 4)
+      .map((item: RecommendationCard) => ({ ...item, category: "restaurant" as const }));
 
   const destinations = Array.isArray(aiRecommendation.destinations)
     ? aiRecommendation.destinations.map((destination: any, index: number) => ({

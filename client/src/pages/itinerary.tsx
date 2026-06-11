@@ -936,7 +936,7 @@ export default function Itinerary() {
                   tripId={tripId || undefined}
                   trip={trip}
                   destination={trip.destination}
-                  travelStyle={trip.travelStyle || trip.tripType}
+                  travelStyle={trip.metadata?.preferences?.travelPace || trip.tripType}
                 />
               </TabsContent>
 

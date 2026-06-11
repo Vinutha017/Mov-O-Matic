@@ -113,7 +113,7 @@ export const weatherAlerts = pgTable("weather_alerts", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const bookingQuotes = pgTable("booking_quotes", {
+export const bookingQuotes: any = pgTable("booking_quotes", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   bookingId: varchar("booking_id").references(() => bookings.id),
   providerType: text("provider_type").notNull(),
@@ -129,7 +129,7 @@ export const bookingQuotes = pgTable("booking_quotes", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const bookings = pgTable("bookings", {
+export const bookings: any = pgTable("bookings", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").references(() => users.id),
   tripId: varchar("trip_id").references(() => trips.id),
@@ -308,6 +308,8 @@ export interface AITripRequest {
   accommodationAmenities?: string[];
   mobilityRequirements?: string;
   specialRequirements?: string;
+  interests?: string[];
+  travelStyle?: string;
 }
 
 export interface AIRecommendation {

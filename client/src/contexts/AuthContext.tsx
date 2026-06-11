@@ -9,6 +9,8 @@ import {
   sendPasswordResetEmail,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   FacebookAuthProvider,
   TwitterAuthProvider
 } from 'firebase/auth';
@@ -160,29 +162,45 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const signInWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
-    const result = await signInWithPopup(auth, provider);
-    // Create user profile if it doesn't exist
-    await createUserProfile(result.user);
+    await signInWithRedirect(auth, provider);
   };
 
   const signInWithFacebook = async () => {
     const provider = new FacebookAuthProvider();
-    const result = await signInWithPopup(auth, provider);
-    // Create user profile if it doesn't exist
-    await createUserProfile(result.user);
+    await signInWithRedirect(auth, provider);
   };
 
   const signInWithTwitter = async () => {
     const provider = new TwitterAuthProvider();
-    const result = await signInWithPopup(auth, provider);
-    // Create user profile if it doesn't exist
-    await createUserProfile(result.user);
+    await signInWithRedirect(auth, provider);
   };
 
   useEffect(() => {
     // Set loading to true initially to wait for auth state
     setLoading(true);
-    
+
+    // Handle redirect results (for signInWithRedirect flows) before subscribing to auth state
+    (async () => {
+      try {
+        const redirectResult = await getRedirectResult(auth);
+        if (redirectResult && redirectResult.user) {
+          console.log('🔁 Redirect sign-in result detected:', redirectResult.user.uid);
+          try {
+            let profile = await getUserProfile(redirectResult.user.uid);
+            if (!profile) {
+              console.log('🆕 Creating profile from redirect result for user:', redirectResult.user.uid);
+              profile = await createUserProfile(redirectResult.user);
+            }
+            setUserProfile(profile);
+          } catch (err) {
+            console.error('❌ Error handling redirect result profile creation:', err);
+          }
+        }
+      } catch (err: any) {
+        if (err && err.code) console.warn('getRedirectResult error:', err.code, err.message);
+      }
+    })();
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       console.log('🔐 Auth state changed:', user ? `User ${user.uid} logged in` : 'User logged out');
       

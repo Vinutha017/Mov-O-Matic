@@ -3,7 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 
-console.log('🔥 Firebase Setup Helper for Mov-O-Matic\n');
+console.log('🔥 Firebase Setup Helper for Planora\n');
 
 // Check if .env file exists
 const envPath = path.join(process.cwd(), '.env');

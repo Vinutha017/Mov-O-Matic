@@ -1,11 +1,14 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { User } from "lucide-react";
+import { LogOut, User } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useEffect, useState } from "react";
 
 export default function StickyProfile() {
   const [mounted, setMounted] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const { currentUser, logout } = useAuth();
+  const [location, setLocation] = useLocation();
   
   useEffect(() => {
     setMounted(true);
@@ -15,18 +18,6 @@ export default function StickyProfile() {
   if (!mounted) {
     return null;
   }
-
-  let currentUser = null;
-  try {
-    const authData = useAuth();
-    currentUser = authData.currentUser;
-  } catch (error) {
-    // If AuthProvider is not available, don't render
-    console.warn('StickyProfile: AuthProvider not available');
-    return null;
-  }
-
-  const [location] = useLocation();
   
   // Don't show on login/signup pages, home page, or the profile page itself
   // Note: use startsWith for profile so any /profile/* route also hides it
@@ -44,8 +35,24 @@ export default function StickyProfile() {
     return null;
   }
 
+  const handleLogout = async () => {
+    if (isLoggingOut) {
+      return;
+    }
+
+    try {
+      setIsLoggingOut(true);
+      await logout();
+      setLocation('/');
+    } catch (error) {
+      console.error('StickyProfile: logout failed', error);
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
+
   return (
-    <div className="fixed top-4 right-4 z-[60]">
+    <div className="fixed top-4 right-4 z-[60] flex flex-col gap-2">
       <Link href="/profile">
         <Button 
           variant="default" 
@@ -56,6 +63,17 @@ export default function StickyProfile() {
           <User className="w-5 h-5" />
         </Button>
       </Link>
+
+      <Button
+        variant="destructive"
+        size="sm"
+        onClick={handleLogout}
+        disabled={isLoggingOut}
+        className="shadow-lg p-3 rounded-full transition-all duration-200 hover:scale-110"
+        title="Log out"
+      >
+        <LogOut className="w-5 h-5" />
+      </Button>
     </div>
   );
 }

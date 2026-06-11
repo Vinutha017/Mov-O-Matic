@@ -40,6 +40,22 @@ export async function setupVite(app: Express, server: Server) {
     appType: "custom",
   });
 
+  // Serve files from client/public (e.g., sw.js, manifest) before Vite middleware
+  app.use(async (req, res, next) => {
+    try {
+      const publicPath = path.resolve(process.cwd(), 'public');
+      const urlPath = decodeURIComponent(req.originalUrl.split('?')[0]);
+      const filePath = path.join(publicPath, urlPath);
+
+      if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+        return res.sendFile(filePath);
+      }
+    } catch (e) {
+      // ignore and continue to Vite middleware
+    }
+    next();
+  });
+
   app.use(vite.middlewares);
   app.use("*", async (req, res, next) => {
     const url = req.originalUrl;

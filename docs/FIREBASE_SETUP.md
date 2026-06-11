@@ -2,7 +2,7 @@
 
 ## 🔥 Firebase Integration Complete!
 
-Your Mov-O-Matic application has been successfully integrated with Firebase. Here's what has been added:
+Your Planora application has been successfully integrated with Firebase. Here's what has been added:
 
 ### ✅ What's Been Implemented
 
@@ -38,7 +38,8 @@ Your Mov-O-Matic application has been successfully integrated with Firebase. Her
 ### 🚀 Getting Started
 
 1. **Firebase Project Setup** (Already configured)
-   - Project ID: `mov-o-matic`
+   - Project ID: `mov-o-matic`  
+     This is the live Firebase project identifier and should only change if you migrate the Firebase project itself.
    - Authentication enabled
    - Firestore database created
 
@@ -172,4 +173,4 @@ Your app is ready for deployment to Firebase Hosting:
 - Database usage and performance monitoring
 - Security rules debugging tools
 
-Your Mov-O-Matic app is now fully integrated with Firebase and ready for production use! 🎉
+Your Planora app is now fully integrated with Firebase and ready for production use! 🎉

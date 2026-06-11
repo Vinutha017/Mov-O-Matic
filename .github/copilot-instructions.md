@@ -1,7 +1,7 @@
-# Copilot Instructions for Mov-O-Matic
+# Copilot Instructions for Planora
 
 ## Quick context
-- Mov-O-Matic is a full-stack TypeScript project: **client/** (React + Vite) + **server/** (Express + TypeScript). Shared types/schemas live in `shared/schema.ts` (Drizzle + zod).
+- Planora is a full-stack TypeScript project: **client/** (React + Vite) + **server/** (Express + TypeScript). Shared types/schemas live in `shared/schema.ts` (Drizzle + zod).
 - Core AI logic is centralized in `server/services/gemini.ts` (class `AITravelPlanner`). The server exposes AI endpoints under `/api/ai/*` and trip endpoints under `/api/trips*` (see `server/routes.ts`).
 
 ## What you must know to be productive

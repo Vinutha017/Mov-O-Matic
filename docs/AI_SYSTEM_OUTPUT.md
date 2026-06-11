@@ -1,4 +1,4 @@
-# MOV-O-MATIC AI System - JSON Output Examples
+# Planora AI System - JSON Output Examples
 
 Your AI system is working perfectly! Here are the exact JSON responses it generates:
 

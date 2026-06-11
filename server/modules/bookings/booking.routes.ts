@@ -80,28 +80,27 @@ export async function registerBookingRoutes(app: Express): Promise<void> {
       console.log("POST /api/bookings request body:", req.body);
       const body = bookingCreateSchema.parse(req.body);
       console.log("Parsed booking body:", body);
-      const booking = await createBookingRecord({
-        quoteId: body.quoteId,
-        booking: {
-          userId: body.userId ?? null,
-          tripId: body.tripId ?? null,
-          quoteId: body.quoteId ?? null,
-          providerType: body.providerType,
-          providerName: body.providerName,
-          providerReservationId: body.providerReservationId ?? null,
-          bookingReference: body.bookingReference ?? null,
-          status: body.status ?? null,
-          startDate: body.startDate ? new Date(body.startDate) : null,
-          endDate: body.endDate ? new Date(body.endDate) : null,
-          travelDate: body.travelDate ? new Date(body.travelDate) : null,
-          travelers: body.travelers,
-          totalAmount: body.totalAmount !== undefined ? String(body.totalAmount) : null,
-          currency: body.currency,
-          holdExpiresAt: body.holdExpiresAt ? new Date(body.holdExpiresAt) : null,
-          contactDetails: body.contactDetails ?? null,
-          providerPayload: body.providerPayload ?? null
-        }
-      });
+      const bookingPayload: any = {
+        userId: body.userId ?? null,
+        tripId: body.tripId ?? null,
+        quoteId: body.quoteId ?? null,
+        providerType: body.providerType,
+        providerName: body.providerName,
+        providerReservationId: body.providerReservationId ?? null,
+        bookingReference: body.bookingReference ?? null,
+        status: body.status ?? null,
+        startDate: body.startDate ?? null,
+        endDate: body.endDate ?? null,
+        travelDate: body.travelDate ?? null,
+        travelers: body.travelers,
+        totalAmount: body.totalAmount !== undefined ? String(body.totalAmount) : null,
+        currency: body.currency,
+        holdExpiresAt: body.holdExpiresAt ?? null,
+        contactDetails: body.contactDetails ?? null,
+        providerPayload: body.providerPayload ?? null
+      };
+
+      const booking = await createBookingRecord({ quoteId: body.quoteId, booking: bookingPayload } as any);
 
       console.log("Booking created successfully:", booking);
       res.json(booking);
