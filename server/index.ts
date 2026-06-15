@@ -14,14 +14,6 @@ function getAllowedOrigins(): string[] {
     .map((origin) => origin.replace(/\/$/, ""));
 }
 
-// Debug environment variables
-console.log('🔧 Environment Variables Debug:');
-console.log('NODE_ENV:', process.env.NODE_ENV);
-console.log('GEMINI_API_KEY exists:', !!process.env.GEMINI_API_KEY);
-console.log('GEMINI_API_KEY length:', process.env.GEMINI_API_KEY?.length || 0);
-console.log('GOOGLE_PLACES_API_KEY exists:', !!process.env.GOOGLE_PLACES_API_KEY);
-console.log('GOOGLE_MAPS_API_KEY exists:', !!process.env.GOOGLE_MAPS_API_KEY);
-
 const app = express();
 const server = createServer(app);
 const port = parseInt(process.env.PORT || '3001', 10);
