@@ -18,7 +18,13 @@ export function apiUrl(path: string): string {
     return path;
   }
 
-  return `${apiBaseUrl}${path.startsWith("/") ? path : `/${path}`}`;
+  const normalizedBaseUrl = /^https?:\/\//i.test(apiBaseUrl)
+    ? apiBaseUrl
+    : apiBaseUrl.startsWith("localhost") || apiBaseUrl.startsWith("127.0.0.1")
+      ? `http://${apiBaseUrl}`
+      : `https://${apiBaseUrl}`;
+
+  return `${normalizedBaseUrl}${path.startsWith("/") ? path : `/${path}`}`;
 }
 
 export async function apiRequest(
