@@ -409,4 +409,144 @@ export async function registerRoutes(app: Express): Promise<void> {
     }
   });
 
+    // ============================================
+    // Google Places Enrichment Endpoints
+    // ============================================
+
+    app.post("/api/places/enrich-activity", async (req, res) => {
+      try {
+        const { placeEnrichmentService } = await import("./services/place-enrichment");
+        const { activity, destination } = req.body;
+
+        if (!activity || !destination) {
+          return res.status(400).json({ message: "activity and destination are required" });
+        }
+
+        const enriched = await placeEnrichmentService.enrichActivity(activity, destination);
+        res.json(enriched);
+      } catch (error) {
+        console.error("Enrich activity error:", error);
+        res.status(500).json({ message: "Failed to enrich activity" });
+      }
+    });
+
+    app.post("/api/places/enrich-restaurant", async (req, res) => {
+      try {
+        const { placeEnrichmentService } = await import("./services/place-enrichment");
+        const { name, destination, cuisine } = req.body;
+
+        if (!name || !destination) {
+          return res.status(400).json({ message: "name and destination are required" });
+        }
+
+        const enriched = await placeEnrichmentService.enrichRestaurant(name, destination, cuisine);
+        res.json(enriched);
+      } catch (error) {
+        console.error("Enrich restaurant error:", error);
+        res.status(500).json({ message: "Failed to enrich restaurant" });
+      }
+    });
+
+    app.post("/api/places/enrich-hotel", async (req, res) => {
+      try {
+        const { placeEnrichmentService } = await import("./services/place-enrichment");
+        const { name, destination } = req.body;
+
+        if (!name || !destination) {
+          return res.status(400).json({ message: "name and destination are required" });
+        }
+
+        const enriched = await placeEnrichmentService.enrichHotel(name, destination);
+        res.json(enriched);
+      } catch (error) {
+        console.error("Enrich hotel error:", error);
+        res.status(500).json({ message: "Failed to enrich hotel" });
+      }
+    });
+
+    app.post("/api/places/search-restaurants", async (req, res) => {
+      try {
+        const { placeEnrichmentService } = await import("./services/place-enrichment");
+        const { destination, cuisine, budget } = req.body;
+
+        if (!destination) {
+          return res.status(400).json({ message: "destination is required" });
+        }
+
+        const restaurants = await placeEnrichmentService.searchRestaurantsByType(
+          destination,
+          cuisine,
+          budget
+        );
+        res.json({ restaurants });
+      } catch (error) {
+        console.error("Search restaurants error:", error);
+        res.status(500).json({ message: "Failed to search restaurants" });
+      }
+    });
+
+    app.get("/api/places/details/:placeId", async (req, res) => {
+      try {
+        const { placeEnrichmentService } = await import("./services/place-enrichment");
+        const { placeId } = req.params;
+
+        const details = await placeEnrichmentService.getPlaceDetails(placeId);
+        if (!details) {
+          return res.status(404).json({ message: "Place not found" });
+        }
+
+        res.json(details);
+      } catch (error) {
+        console.error("Get place details error:", error);
+        res.status(500).json({ message: "Failed to get place details" });
+      }
+    });
+
+    app.post("/api/places/validate-itinerary", async (req, res) => {
+      try {
+        const { placeEnrichmentService } = await import("./services/place-enrichment");
+        const { days, destination } = req.body;
+
+        if (!days || !destination) {
+          return res.status(400).json({ message: "days and destination are required" });
+        }
+
+        const validationResults = await placeEnrichmentService.validateItinerary(
+          days,
+          destination
+        );
+        res.json({ validationResults });
+      } catch (error) {
+        console.error("Validate itinerary error:", error);
+        res.status(500).json({ message: "Failed to validate itinerary" });
+      }
+    });
+
+    app.post("/api/places/enrich-itinerary", async (req, res) => {
+      try {
+        const { placeEnrichmentService } = await import("./services/place-enrichment");
+        const { days, destination } = req.body;
+
+        if (!days || !destination) {
+          return res.status(400).json({ message: "days and destination are required" });
+        }
+
+        const enrichedDays = await placeEnrichmentService.enrichItinerary(days, destination);
+        res.json({ enrichedDays });
+      } catch (error) {
+        console.error("Enrich itinerary error:", error);
+        res.status(500).json({ message: "Failed to enrich itinerary" });
+      }
+    });
+
+    app.get("/api/places/cache-stats", (req, res) => {
+      try {
+        const { placeEnrichmentService } = require("./services/place-enrichment");
+        const stats = placeEnrichmentService.getCacheStats();
+        res.json(stats);
+      } catch (error) {
+        console.error("Cache stats error:", error);
+        res.status(500).json({ message: "Failed to get cache stats" });
+      }
+    });
 }

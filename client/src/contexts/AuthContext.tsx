@@ -43,6 +43,44 @@ const LOCAL_AUTH_SESSION_KEY = 'planora-local-auth-session';
 const isBrowser = typeof window !== 'undefined';
 const useLocalAuthMode = import.meta.env.DEV && isBrowser && ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
 
+const isFirebaseApiKeyError = (error: any) => {
+  const code = String(error?.code || '').toLowerCase();
+  const message = String(error?.message || '').toLowerCase();
+
+  return (
+    code.includes('api-key-not-valid') ||
+    code.includes('invalid-api-key') ||
+    message.includes('api-key-not-valid') ||
+    message.includes('invalid api key') ||
+    message.includes('pass a valid api key')
+  );
+};
+
+const shouldUseLocalAuthFallback = (error: any) => useLocalAuthMode || isFirebaseApiKeyError(error);
+
+const createLocalAccountFromEmail = (email: string, password: string, displayName?: string): LocalAuthAccount => ({
+  uid: `local-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+  email,
+  password,
+  displayName: displayName || email.split('@')[0],
+  photoURL: '',
+  createdAt: new Date().toISOString(),
+});
+
+const getFriendlyAuthError = (error: any, fallbackMessage: string) => {
+  if (isFirebaseApiKeyError(error)) {
+    const customError = new Error(
+      'Firebase is rejecting this app\'s API key. Check that VITE_FIREBASE_API_KEY matches the Firebase project used by this build, then restart the app. If you are developing locally, the app can fall back to local auth.'
+    );
+    customError.name = 'FirebaseApiKeyInvalid';
+    return customError;
+  }
+
+  const customError = new Error(fallbackMessage);
+  customError.name = 'AuthError';
+  return customError;
+};
+
 const readLocalAuthAccounts = (): LocalAuthAccount[] => {
   if (!isBrowser) return [];
 
@@ -216,6 +254,26 @@ export function AuthProvider({ children }: AuthProviderProps) {
       console.log('🎉 Signup completed successfully!');
     } catch (error: any) {
       console.error('❌ Signup failed:', error);
+
+      if (shouldUseLocalAuthFallback(error)) {
+        console.warn('🧪 Falling back to local auth signup because Firebase auth is unavailable or the API key is invalid.');
+
+        const localAccounts = readLocalAuthAccounts();
+        const existingAccount = localAccounts.find((account) => account.email.toLowerCase() === email.toLowerCase());
+
+        if (existingAccount) {
+          const customError = new Error('An account with this email already exists. Please sign in instead or use a different email address.');
+          customError.name = 'EmailAlreadyInUse';
+          throw customError;
+        }
+
+        const localAccount = createLocalAccountFromEmail(email, password, displayName);
+        writeLocalAuthAccounts([...localAccounts, localAccount]);
+        const localUser = createAuthenticatedUser(localAccount);
+        await syncLocalAuthSession(localUser, additionalData);
+        console.log('🎉 Local fallback signup completed successfully!');
+        return;
+      }
       
       // Handle specific Firebase error codes
       if (error.code === 'auth/email-already-in-use') {
@@ -257,7 +315,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         return;
       }
       
-      throw error;
+      throw getFriendlyAuthError(error, 'Signup failed. Please try again.');
     }
   };
 
@@ -288,6 +346,29 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       await signInWithEmailAndPassword(auth, email, password);
     } catch (error: any) {
+      if (shouldUseLocalAuthFallback(error)) {
+        console.warn('🧪 Falling back to local auth login because Firebase auth is unavailable or the API key is invalid.');
+
+        const localAccounts = readLocalAuthAccounts();
+        const account = localAccounts.find(
+          (entry) => entry.email.toLowerCase() === email.toLowerCase() && entry.password === password
+        );
+
+        if (!account) {
+          const customError = new Error('No local account matched those credentials. Please check your email and password, or create an account first.');
+          customError.name = 'InvalidCredential';
+          throw customError;
+        }
+
+        const localUser = createAuthenticatedUser(account);
+        setCurrentUser(localUser);
+        writeLocalAuthSession(localUser);
+
+        const profile = await getUserProfile(localUser.uid) || await createUserProfile(localUser);
+        setUserProfile(profile);
+        return;
+      }
+
       if (error.code === 'auth/operation-not-allowed') {
         const localAccounts = readLocalAuthAccounts();
         const account = localAccounts.find(
@@ -335,9 +416,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
         const customError = new Error('Too many failed login attempts. Please try again later.');
         customError.name = 'TooManyRequests';
         throw customError;
+      } else if (isFirebaseApiKeyError(error)) {
+        throw getFriendlyAuthError(error, 'Firebase is rejecting this app\'s API key. Please check your Firebase configuration and try again.');
       }
       
-      throw error;
+      throw getFriendlyAuthError(error, 'Login failed. Please try again.');
     }
   };
 
@@ -354,7 +437,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
   };
 
   const resetPassword = async (email: string) => {
-    await sendPasswordResetEmail(auth, email);
+    try {
+      await sendPasswordResetEmail(auth, email);
+    } catch (error: any) {
+      if (shouldUseLocalAuthFallback(error)) {
+        const customError = new Error('Password reset requires a valid Firebase API key. Please fix the Firebase configuration first.');
+        customError.name = 'FirebaseApiKeyInvalid';
+        throw customError;
+      }
+
+      throw error;
+    }
   };
 
   const updateUserProfile = async (displayName: string, photoURL?: string) => {
@@ -377,18 +470,42 @@ export function AuthProvider({ children }: AuthProviderProps) {
   };
 
   const signInWithGoogle = async () => {
-    const provider = new GoogleAuthProvider();
-    await signInWithRedirect(auth, provider);
+    try {
+      const provider = new GoogleAuthProvider();
+      await signInWithRedirect(auth, provider);
+    } catch (error: any) {
+      if (shouldUseLocalAuthFallback(error)) {
+        throw getFriendlyAuthError(error, 'Google sign-in is unavailable because Firebase is not configured correctly.');
+      }
+
+      throw error;
+    }
   };
 
   const signInWithFacebook = async () => {
-    const provider = new FacebookAuthProvider();
-    await signInWithRedirect(auth, provider);
+    try {
+      const provider = new FacebookAuthProvider();
+      await signInWithRedirect(auth, provider);
+    } catch (error: any) {
+      if (shouldUseLocalAuthFallback(error)) {
+        throw getFriendlyAuthError(error, 'Facebook sign-in is unavailable because Firebase is not configured correctly.');
+      }
+
+      throw error;
+    }
   };
 
   const signInWithTwitter = async () => {
-    const provider = new TwitterAuthProvider();
-    await signInWithRedirect(auth, provider);
+    try {
+      const provider = new TwitterAuthProvider();
+      await signInWithRedirect(auth, provider);
+    } catch (error: any) {
+      if (shouldUseLocalAuthFallback(error)) {
+        throw getFriendlyAuthError(error, 'Twitter sign-in is unavailable because Firebase is not configured correctly.');
+      }
+
+      throw error;
+    }
   };
 
   useEffect(() => {

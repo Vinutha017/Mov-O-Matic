@@ -74,7 +74,7 @@ export default function AIRecommendationsForm() {
 
   const recommendationsMutation = useMutation({
     mutationFn: async (data: RecommendationForm) => {
-      const response = await fetch(apiUrl("/api/ai/hotel-recommendations"), {
+      const response =  fetch(apiUrl("/api/ai/hotel-recommendations"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),

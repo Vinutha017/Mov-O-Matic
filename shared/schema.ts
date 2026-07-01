@@ -417,3 +417,101 @@ export interface TripRecommendationResponse {
   seasonalTips: string[];
   summary: string;
 }
+
+// ============================================
+// Google Places Integration Types
+// ============================================
+
+export interface PlaceLocation {
+  lat: number;
+  lng: number;
+}
+
+export interface PlacePhoto {
+  name: string;
+  height: number;
+  width: number;
+  authorAttributions?: Array<{
+    displayName: string;
+    uri?: string;
+  }>;
+}
+
+export interface OpeningPeriod {
+  open: {
+    day: number;
+    hour: number;
+    minute: number;
+  };
+  close?: {
+    day: number;
+    hour: number;
+    minute: number;
+  };
+}
+
+export interface EnrichedPlace {
+  name: string;
+  address: string;
+  placeId: string;
+  location: PlaceLocation;
+  rating?: number;
+  totalRatings?: number;
+  priceLevel?: string;
+  openingHours?: OpeningPeriod[];
+  websiteUri?: string;
+  mapsUri?: string;
+  phoneNumber?: string;
+  photos?: PlacePhoto[];
+  businessStatus?: string;
+  types?: string[];
+  formattedAddress?: string;
+  displayName?: {
+    text: string;
+    languageCode: string;
+  };
+  verifiedByGoogle?: boolean;
+}
+
+export interface EnrichedActivity extends Activity {
+  enrichedPlace?: EnrichedPlace;
+  travelInfo?: {
+    toNextActivity?: {
+      distance: string;
+      duration: string;
+      distanceValue: number;
+      durationValue: number;
+    };
+  };
+}
+
+export interface EnrichedItineraryDay extends ItineraryDay {
+  activities: EnrichedActivity[];
+}
+
+export interface EnrichedTrip extends Trip {
+  days: EnrichedItineraryDay[];
+}
+
+export interface RouteInfo {
+  distance: {
+    value: number;
+    text: string;
+  };
+  duration: {
+    value: number;
+    text: string;
+  };
+  distanceMeters?: number;
+  durationSeconds?: number;
+}
+
+export interface PlaceValidationResult {
+  placeName: string;
+  destination: string;
+  isValid: boolean;
+  originalPlace?: Activity;
+  enrichedPlace?: EnrichedPlace;
+  fallbackPlace?: EnrichedPlace;
+  matchScore: number; // 0-1
+}
