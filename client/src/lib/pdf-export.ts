@@ -7,6 +7,11 @@ type PdfStop = {
   description?: string;
 };
 
+type PdfLine = {
+  label: string;
+  value: string;
+};
+
 function formatPdfDate(date: Date | string | any) {
   if (!date) return "Not set";
 
@@ -58,14 +63,32 @@ function safeText(value: unknown, fallback = "Not available") {
   return fallback;
 }
 
+function normalizePdfText(value: unknown, fallback = "Not available") {
+  const text = safeText(value, fallback);
+  return text
+    .replace(/https?:\/\/\S+/gi, "")
+    .replace(/\s*\|\s*/g, " | ")
+    .replace(/\s+/g, " ")
+    .trim() || fallback;
+}
+
+function shortenText(text: string, maxLength: number) {
+  if (text.length <= maxLength) return text;
+  return `${text.slice(0, Math.max(0, maxLength - 1)).trimEnd()}…`;
+}
+
+function formatBulletText(value: unknown, fallback = "Not available") {
+  return shortenText(normalizePdfText(value, fallback), 220);
+}
+
 function drawSectionTitle(pdf: jsPDF, title: string, y: number) {
   pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(14);
-  pdf.setTextColor(31, 41, 55);
+  pdf.setFontSize(13);
+  pdf.setTextColor(17, 24, 39);
   pdf.text(title, 14, y);
-  pdf.setDrawColor(229, 231, 235);
+  pdf.setDrawColor(226, 232, 240);
   pdf.line(14, y + 2, 196, y + 2);
-  return y + 9;
+  return y + 8;
 }
 
 function ensureSpace(pdf: jsPDF, y: number, needed: number) {
@@ -81,6 +104,88 @@ function addWrappedText(pdf: jsPDF, text: string, x: number, y: number, width: n
   const lines = pdf.splitTextToSize(text, width);
   pdf.text(lines, x, y);
   return y + lines.length * lineHeight;
+}
+
+function measureWrappedHeight(pdf: jsPDF, text: string, width: number, lineHeight = 5) {
+  const lines = pdf.splitTextToSize(text, width);
+  return Math.max(lineHeight, lines.length * lineHeight);
+}
+
+function drawKeyValueCard(pdf: jsPDF, title: string, lines: PdfLine[], y: number, pageWidth: number) {
+  const cardX = 14;
+  const cardWidth = pageWidth - 28;
+  const lineGap = 1.8;
+  const labelWidth = 32;
+  const valueWidth = cardWidth - 12 - labelWidth;
+
+  const contentHeight = lines.reduce((total, line) => {
+    const valueHeight = measureWrappedHeight(pdf, line.value, valueWidth, 4.5);
+    return total + Math.max(5, valueHeight) + lineGap;
+  }, 0);
+  const totalHeight = 10 + contentHeight + 6;
+
+  y = ensureSpace(pdf, y, totalHeight + 2);
+
+  pdf.setFillColor(248, 250, 252);
+  pdf.setDrawColor(226, 232, 240);
+  pdf.roundedRect(cardX, y, cardWidth, totalHeight, 3, 3, "FD");
+
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(11);
+  pdf.setTextColor(15, 23, 42);
+  pdf.text(title, cardX + 6, y + 7);
+
+  let cursorY = y + 13;
+  lines.forEach((line) => {
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(9.5);
+    pdf.setTextColor(71, 85, 105);
+    pdf.text(`${line.label}:`, cardX + 6, cursorY);
+
+    pdf.setFont("helvetica", "normal");
+    pdf.setTextColor(30, 41, 59);
+    const wrappedValue = pdf.splitTextToSize(line.value, valueWidth);
+    pdf.text(wrappedValue, cardX + 6 + labelWidth, cursorY);
+    cursorY += Math.max(5, wrappedValue.length * 4.5) + lineGap;
+  });
+
+  return y + totalHeight + 4;
+}
+
+function drawBulletCard(pdf: jsPDF, title: string, items: string[], y: number, pageWidth: number) {
+  if (items.length === 0) return y;
+
+  const cardX = 14;
+  const cardWidth = pageWidth - 28;
+  const innerWidth = cardWidth - 12;
+  const bulletWidth = innerWidth - 6;
+
+  const itemHeights = items.map((item) => measureWrappedHeight(pdf, item, bulletWidth, 4.5) + 2.5);
+  const totalHeight = 10 + itemHeights.reduce((sum, height) => sum + height, 0) + 4;
+
+  y = ensureSpace(pdf, y, totalHeight + 2);
+
+  pdf.setFillColor(255, 255, 255);
+  pdf.setDrawColor(226, 232, 240);
+  pdf.roundedRect(cardX, y, cardWidth, totalHeight, 3, 3, "FD");
+
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(11);
+  pdf.setTextColor(15, 23, 42);
+  pdf.text(title, cardX + 6, y + 7);
+
+  let cursorY = y + 13;
+  items.forEach((item) => {
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(9.5);
+    pdf.setTextColor(51, 65, 85);
+    pdf.text("•", cardX + 6, cursorY);
+    const lines = pdf.splitTextToSize(item, bulletWidth);
+    pdf.text(lines, cardX + 11, cursorY);
+    cursorY += Math.max(5, lines.length * 4.5) + 2.5;
+  });
+
+  return y + totalHeight + 4;
 }
 
 function addBulletList(pdf: jsPDF, items: string[], x: number, y: number, width: number) {
@@ -109,9 +214,10 @@ export async function exportTripToPDF(trip: Trip, stops: PdfStop[] = []) {
   const itineraryDays = Array.isArray(trip.aiRecommendation?.itinerary) ? trip.aiRecommendation.itinerary : [];
   const hotels = Array.isArray(trip.aiRecommendation?.hotels) ? trip.aiRecommendation.hotels : [];
   const restaurants = Array.isArray(trip.aiRecommendation?.restaurants) ? trip.aiRecommendation.restaurants : [];
+  const accentOrange = [249, 115, 22] as const;
 
   // Header band
-  pdf.setFillColor(249, 115, 22);
+  pdf.setFillColor(...accentOrange);
   pdf.rect(0, 0, pageWidth, 34, "F");
   pdf.setTextColor(255, 255, 255);
   pdf.setFont("helvetica", "bold");
@@ -126,38 +232,42 @@ export async function exportTripToPDF(trip: Trip, stops: PdfStop[] = []) {
 
   y = drawSectionTitle(pdf, trip.title || "Trip Itinerary", y);
   pdf.setFont("helvetica", "normal");
-  pdf.setFontSize(11);
-  y = addWrappedText(pdf, `Destination: ${safeText(trip.destination)}`, 14, y, 180) + 1;
-  y = addWrappedText(pdf, `Travel dates: ${startDate} to ${endDate} (${duration} day${duration === 1 ? "" : "s"})`, 14, y, 180) + 1;
-  y = addWrappedText(pdf, `Travelers: ${trip.travelers || 1} | Trip type: ${tripType} | Budget: ${budget}`, 14, y, 180) + 4;
+  pdf.setFontSize(10.5);
+  y = addWrappedText(pdf, normalizePdfText(`Destination: ${trip.destination}`), 14, y, 180, 4.5) + 1;
+  y = addWrappedText(pdf, normalizePdfText(`Travel dates: ${startDate} to ${endDate} (${duration} day${duration === 1 ? "" : "s"})`), 14, y, 180, 4.5) + 1;
+  y = addWrappedText(pdf, normalizePdfText(`Travelers: ${trip.travelers || 1} | Trip type: ${tripType} | Budget: ${budget}`), 14, y, 180, 4.5) + 4;
 
-  y = drawSectionTitle(pdf, "Trip Summary", y);
-  const summaryLines = [
-    `Start location: ${safeText(trip.metadata?.travelInfo?.startLocation)}`,
-    `Primary transport: ${safeText(trip.metadata?.travelInfo?.modeOfTravel)}`,
-    `Trip theme: ${safeText(trip.metadata?.preferences?.tripThemes?.[0] || trip.aiRecommendation?.tripTheme)}`,
-    `Hotel type: ${safeText(trip.metadata?.hotelPreferences?.hotelType)}`,
-    `Room type: ${safeText(trip.metadata?.hotelPreferences?.roomType)}`,
-  ];
-  summaryLines.forEach((line) => {
-    y = ensureSpace(pdf, y, 10);
-    y = addWrappedText(pdf, line, 14, y, 180) + 1;
-  });
+  y = drawKeyValueCard(pdf, "Trip Summary", [
+    { label: "Start", value: normalizePdfText(trip.metadata?.travelInfo?.startLocation) },
+    { label: "Transport", value: normalizePdfText(trip.metadata?.travelInfo?.modeOfTravel) },
+    { label: "Theme", value: normalizePdfText(trip.metadata?.preferences?.tripThemes?.[0] || trip.aiRecommendation?.tripTheme) },
+    { label: "Hotel", value: normalizePdfText(trip.metadata?.hotelPreferences?.hotelType) },
+    { label: "Room", value: normalizePdfText(trip.metadata?.hotelPreferences?.roomType) },
+  ], y, pageWidth);
 
   if (hotels.length > 0) {
     y = drawSectionTitle(pdf, "Recommended Hotels", y);
     hotels.slice(0, 4).forEach((hotel: any, index: number) => {
-      y = ensureSpace(pdf, y, 24);
+      y = ensureSpace(pdf, y, 30);
+      const hotelTitle = normalizePdfText(hotel.name, "Hotel");
+      const hotelLocation = normalizePdfText(hotel.location || hotel.address || trip.destination);
+      const hotelRating = normalizePdfText(hotel.rating, "Not available");
+      const hotelPrice = hotel.pricePerNight ? `₹${hotel.pricePerNight}` : "Not available";
+      const hotelDescription = hotel.description ? shortenText(normalizePdfText(hotel.description), 210) : "";
+
       pdf.setFont("helvetica", "bold");
-      pdf.setFontSize(11);
-      pdf.text(`${index + 1}. ${safeText(hotel.name, "Hotel")}`, 14, y);
-      y += 6;
+      pdf.setFontSize(10.5);
+      pdf.setTextColor(15, 23, 42);
+      pdf.text(`${index + 1}. ${hotelTitle}`, 14, y);
+      y += 5.5;
+
       pdf.setFont("helvetica", "normal");
-      pdf.setFontSize(10);
-      y = addWrappedText(pdf, `Location: ${safeText(hotel.location || hotel.address || trip.destination)}`, 18, y, 172) + 1;
-      y = addWrappedText(pdf, `Rating: ${safeText(hotel.rating)} | Price per night: ${safeText(hotel.pricePerNight ? `₹${hotel.pricePerNight}` : undefined)}`, 18, y, 172) + 1;
-      if (hotel.description) {
-        y = addWrappedText(pdf, `Why it fits: ${hotel.description}`, 18, y, 172) + 1;
+      pdf.setFontSize(9.5);
+      pdf.setTextColor(51, 65, 85);
+      y = addWrappedText(pdf, `Location: ${hotelLocation}`, 18, y, 172, 4.5) + 0.5;
+      y = addWrappedText(pdf, `Rating: ${hotelRating} | Price per night: ${hotelPrice}`, 18, y, 172, 4.5) + 0.5;
+      if (hotelDescription) {
+        y = addWrappedText(pdf, `Why it fits: ${hotelDescription}`, 18, y, 172, 4.5) + 0.5;
       }
     });
     y += 2;
@@ -168,24 +278,27 @@ export async function exportTripToPDF(trip: Trip, stops: PdfStop[] = []) {
     itineraryDays.slice(0, 6).forEach((day: any) => {
       y = ensureSpace(pdf, y, 30);
       pdf.setFont("helvetica", "bold");
-      pdf.setFontSize(11);
-      pdf.text(`Day ${day.day || ""}${day.title || day.dayTitle ? ` - ${day.title || day.dayTitle}` : ""}`, 14, y);
-      y += 6;
+      pdf.setFontSize(10.8);
+      pdf.setTextColor(15, 23, 42);
+      pdf.text(`Day ${day.day || ""}${day.title || day.dayTitle ? ` - ${normalizePdfText(day.title || day.dayTitle)}` : ""}`, 14, y);
+      y += 5.5;
 
       const activities = Array.isArray(day.activities) ? day.activities : [];
       const activityLines = activities.slice(0, 5).map((activity: any) => {
         if (typeof activity === "string") return activity;
         const time = activity.startTime && activity.endTime ? `${activity.startTime} - ${activity.endTime}: ` : "";
-        const location = activity.location ? ` (${activity.location})` : "";
-        return `${time}${safeText(activity.title, "Activity")}${location}`;
+        const location = activity.location ? ` (${normalizePdfText(activity.location)})` : "";
+        const title = normalizePdfText(activity.title, "Activity");
+        const note = activity.description ? ` - ${shortenText(normalizePdfText(activity.description), 100)}` : "";
+        return `${time}${title}${location}${note}`;
       });
 
       if (activityLines.length > 0) {
-        y = addBulletList(pdf, activityLines, 18, y, 172) + 2;
+        y = drawBulletCard(pdf, `Day ${day.day || ""} Activities`, activityLines.map((item) => formatBulletText(item)), y, pageWidth);
       } else {
         pdf.setFont("helvetica", "normal");
-        pdf.setFontSize(10);
-        y = addWrappedText(pdf, "No activity details available for this day.", 18, y, 172) + 2;
+        pdf.setFontSize(9.5);
+        y = addWrappedText(pdf, "No activity details available for this day.", 18, y, 172, 4.5) + 2;
       }
     });
   }
@@ -193,19 +306,21 @@ export async function exportTripToPDF(trip: Trip, stops: PdfStop[] = []) {
   if (restaurants.length > 0) {
     y = drawSectionTitle(pdf, "Recommended Restaurants", y);
     const restaurantLines = restaurants.slice(0, 4).map((restaurant: any) => {
-      const location = restaurant.location ? ` - ${restaurant.location}` : "";
-      return `${safeText(restaurant.title, "Restaurant")}${location}`;
+      const location = restaurant.location ? ` - ${normalizePdfText(restaurant.location)}` : "";
+      const description = restaurant.description ? ` - ${shortenText(normalizePdfText(restaurant.description), 90)}` : "";
+      return `${normalizePdfText(restaurant.title, "Restaurant")}${location}${description}`;
     });
-    y = addBulletList(pdf, restaurantLines, 14, y, 180) + 2;
+    y = drawBulletCard(pdf, "Top Picks", restaurantLines.map((item) => formatBulletText(item)), y, pageWidth);
   }
 
   if (stops.length > 0) {
     y = drawSectionTitle(pdf, "Map Stops", y);
     const stopLines = stops.slice(0, 6).map((stop) => {
-      const location = stop.location ? ` - ${stop.location}` : "";
-      return `${stop.label}${location}`;
+      const location = stop.location ? ` - ${normalizePdfText(stop.location)}` : "";
+      const description = stop.description ? ` - ${shortenText(normalizePdfText(stop.description), 90)}` : "";
+      return `${normalizePdfText(stop.label)}${location}${description}`;
     });
-    y = addBulletList(pdf, stopLines, 14, y, 180) + 2;
+    y = drawBulletCard(pdf, "Map Stops", stopLines.map((item) => formatBulletText(item)), y, pageWidth);
   }
 
   y = ensureSpace(pdf, y, 20);
@@ -221,6 +336,10 @@ export async function exportTripToPDF(trip: Trip, stops: PdfStop[] = []) {
     pdf.setFontSize(9);
     pdf.setTextColor(107, 114, 128);
     pdf.text(`Page ${page} of ${pageCount}`, pageWidth - 28, pageHeight - 10);
+    if (page === 1) {
+      pdf.setDrawColor(226, 232, 240);
+      pdf.line(14, 37, pageWidth - 14, 37);
+    }
   }
 
   const filename = `${(trip.title || trip.destination || "trip").replace(/[^a-zA-Z0-9]/g, "_")}_Itinerary.pdf`;
