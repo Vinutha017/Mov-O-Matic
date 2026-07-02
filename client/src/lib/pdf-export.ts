@@ -214,10 +214,10 @@ export async function exportTripToPDF(trip: Trip, stops: PdfStop[] = []) {
   const itineraryDays = Array.isArray(trip.aiRecommendation?.itinerary) ? trip.aiRecommendation.itinerary : [];
   const hotels = Array.isArray(trip.aiRecommendation?.hotels) ? trip.aiRecommendation.hotels : [];
   const restaurants = Array.isArray(trip.aiRecommendation?.restaurants) ? trip.aiRecommendation.restaurants : [];
-  const accentOrange = [249, 115, 22] as const;
+  const accentPink = [251, 182, 206] as const;
 
   // Header band
-  pdf.setFillColor(...accentOrange);
+  pdf.setFillColor(...accentPink);
   pdf.rect(0, 0, pageWidth, 34, "F");
   pdf.setTextColor(255, 255, 255);
   pdf.setFont("helvetica", "bold");
