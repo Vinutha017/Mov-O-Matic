@@ -18,7 +18,7 @@ export default function Welcome() {
       const updatedUserData = { ...userData, isNewUser: false };
       localStorage.setItem('userProfile', JSON.stringify(updatedUserData));
     }
-    setLocation('/');
+    setLocation('/trip-wizard');
   };
 
   const handleGoToDashboard = () => {
