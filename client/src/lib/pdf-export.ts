@@ -235,7 +235,7 @@ export async function exportTripToPDF(trip: Trip, stops: PdfStop[] = []) {
   pdf.setFontSize(10.5);
   y = addWrappedText(pdf, normalizePdfText(`Destination: ${trip.destination}`), 14, y, 180, 4.5) + 1;
   y = addWrappedText(pdf, normalizePdfText(`Travel dates: ${startDate} to ${endDate} (${duration} day${duration === 1 ? "" : "s"})`), 14, y, 180, 4.5) + 1;
-  y = addWrappedText(pdf, normalizePdfText(`Travelers: ${trip.travelers || 1} | Trip type: ${tripType} | Budget: ${budget}`), 14, y, 180, 4.5) + 4;
+  y += 3;
 
   y = drawKeyValueCard(pdf, "Trip Summary", [
     { label: "Start", value: normalizePdfText(trip.metadata?.travelInfo?.startLocation) },
